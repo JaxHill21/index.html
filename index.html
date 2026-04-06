@@ -283,6 +283,8 @@
             margin-top: 15px;
             font-size: 0.75rem;
             color: #6b7280;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
         .source {
@@ -295,6 +297,11 @@
         .source-breaking {
             background: #ef4444;
             color: white;
+        }
+
+        .datetime {
+            font-family: monospace;
+            font-size: 0.7rem;
         }
 
         .loading, .error {
@@ -351,7 +358,7 @@
     <footer>
         Sources: ESPN, Bleacher Report, Yahoo Sports, RealGM, CBS Sports, SI, NFL.com +
         🔥 Shams Charania (NBA) & 🔥 Adam Schefter (NFL) Breaking News via RSS.app.<br>
-        Data updates in real-time. Max 25 unique stories per league.
+        Max 25 unique stories per league. Published date & time shown on each article.
     </footer>
 </div>
 
@@ -410,7 +417,7 @@
         }
     }
 
-    // Normalize title for deduplication: remove common words, punctuation, lowercase
+    // Normalize title for deduplication
     function normalizeTitle(title) {
         return title.toLowerCase()
             .replace(/[^\w\s]/g, '')
@@ -419,7 +426,6 @@
             .trim();
     }
 
-    // Check if two titles are similar (overlap > 60%)
     function areSimilar(title1, title2) {
         const norm1 = normalizeTitle(title1);
         const norm2 = normalizeTitle(title2);
@@ -431,7 +437,6 @@
         return similarity > 0.6;
     }
 
-    // Deduplicate and keep only the most recent article per topic group
     function deduplicateArticles(articles) {
         const groups = [];
         for (const article of articles) {
@@ -447,9 +452,7 @@
                 groups.push([article]);
             }
         }
-        // For each group, keep the most recent (newest pubDate)
         const unique = groups.map(group => group.reduce((a, b) => a.pubDate > b.pubDate ? a : b));
-        // Sort by date descending
         unique.sort((a, b) => b.pubDate - a.pubDate);
         return unique;
     }
@@ -463,13 +466,35 @@
                 allArticles = allArticles.concat(res.value);
             }
         }
-        // Deduplicate by topic similarity
         let uniqueArticles = deduplicateArticles(allArticles);
-        // Limit to max articles
         if (uniqueArticles.length > MAX_ARTICLES) {
             uniqueArticles = uniqueArticles.slice(0, MAX_ARTICLES);
         }
         return uniqueArticles;
+    }
+
+    // Format full date and time
+    function formatFullDateTime(date) {
+        if (!(date instanceof Date) || isNaN(date)) return "Unknown date";
+        return date.toLocaleString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZoneName: 'short'
+        });
+    }
+
+    // Relative time (for tooltip or secondary)
+    function formatRelativeTime(date) {
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        if (diffMins < 1) return "just now";
+        if (diffMins < 60) return `${diffMins} min ago`;
+        if (diffMins < 1440) return `${Math.floor(diffMins / 60)} hours ago`;
+        return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     }
 
     function renderNews(articles, containerId) {
@@ -482,6 +507,7 @@
         const html = articles.map(article => {
             const hasImage = article.image && article.image.trim() !== "";
             const imageHtml = hasImage ? `<div class="card-img" style="background-image: url(${article.image});"></div>` : '';
+            const fullDate = formatFullDateTime(article.pubDate);
             return `
             <div class="news-card">
                 ${imageHtml}
@@ -491,8 +517,9 @@
                     </div>
                     <div class="news-meta">
                         <span class="source ${article.isBreaking ? 'source-breaking' : ''}">${escapeHtml(article.source)}</span>
-                        <span>${formatDate(article.pubDate)}</span>
+                        <span class="datetime" title="${fullDate}">${formatRelativeTime(article.pubDate)}</span>
                     </div>
+                    <div class="datetime" style="font-size:0.7rem; margin-top:8px; color:#6b7280;">${fullDate}</div>
                 </div>
             </div>
         `}).join('');
@@ -515,6 +542,7 @@
                 <div class="hero-text">
                     <div class="hero-category">${escapeHtml(mainStory.source)}</div>
                     <h2><a href="${mainStory.link}" target="_blank">${escapeHtml(mainStory.title)}</a></h2>
+                    <div class="datetime" style="margin-top:10px; font-size:0.8rem;">${formatFullDateTime(mainStory.pubDate)}</div>
                 </div>
             </div>
             <div class="hero-side">
@@ -525,7 +553,8 @@
                         <div class="side-img" style="${sideImageStyle}"></div>
                         <div class="side-content">
                             <h4><a href="${story.link}" target="_blank" style="color:white; text-decoration:none;">${escapeHtml(story.title)}</a></h4>
-                            <p>${escapeHtml(story.source)} • ${formatDate(story.pubDate)}</p>
+                            <p>${escapeHtml(story.source)} • ${formatRelativeTime(story.pubDate)}</p>
+                            <p style="font-size:0.7rem; color:#6b7280;">${formatFullDateTime(story.pubDate)}</p>
                         </div>
                     </div>
                 `}).join('')}
@@ -555,17 +584,6 @@
             if (m === '>') return '&gt;';
             return m;
         });
-    }
-
-    function formatDate(date) {
-        if (!(date instanceof Date) || isNaN(date)) return "recent";
-        const now = new Date();
-        const diffMs = now - date;
-        const diffMins = Math.floor(diffMs / 60000);
-        if (diffMins < 1) return "just now";
-        if (diffMins < 60) return `${diffMins} min ago`;
-        if (diffMins < 1440) return `${Math.floor(diffMins / 60)} hours ago`;
-        return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     }
 
     async function loadLeague(league) {
