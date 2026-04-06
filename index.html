@@ -5,440 +5,71 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Scoop | NBA & NFL News + Data Vault</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: #0a0c10;
-            color: #eef2ff;
-            line-height: 1.5;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px 30px;
-        }
-
-        .site-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            margin-bottom: 40px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #1f2937;
-        }
-
-        .logo h1 {
-            font-size: 1.8rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #fff, #3b82f6);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            letter-spacing: -0.5px;
-        }
-
-        .logo p {
-            font-size: 0.8rem;
-            color: #6b7280;
-        }
-
-        .nav-tabs {
-            display: flex;
-            gap: 15px;
-            background: #111827;
-            padding: 6px;
-            border-radius: 60px;
-        }
-
-        .tab-btn {
-            background: transparent;
-            border: none;
-            padding: 10px 28px;
-            font-size: 1rem;
-            font-weight: 600;
-            border-radius: 40px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            color: #9ca3af;
-        }
-
-        .tab-btn.active {
-            background: #3b82f6;
-            color: white;
-            box-shadow: 0 4px 12px rgba(59,130,246,0.3);
-        }
-
-        /* Ticker */
-        .ticker-container {
-            background: #111827;
-            border-radius: 16px;
-            margin-bottom: 40px;
-            padding: 0 20px;
-            display: flex;
-            align-items: center;
-            border-left: 5px solid #ef4444;
-        }
-
-        .ticker-label {
-            background: #ef4444;
-            color: white;
-            font-weight: 800;
-            padding: 8px 18px;
-            border-radius: 40px;
-            font-size: 0.8rem;
-            letter-spacing: 1px;
-            margin-right: 20px;
-        }
-
-        .ticker-content {
-            flex: 1;
-            overflow: hidden;
-            white-space: nowrap;
-            padding: 14px 0;
-        }
-
-        .ticker-scroll {
-            display: inline-block;
-            white-space: nowrap;
-            animation: scrollTicker 100s linear infinite;
-        }
-
-        .ticker-scroll:hover {
-            animation-play-state: paused;
-        }
-
-        .ticker-scroll a {
-            color: #e2e8f0;
-            text-decoration: none;
-            margin-right: 40px;
-            font-size: 0.95rem;
-            transition: color 0.2s;
-        }
-
-        .ticker-scroll a:hover {
-            color: #3b82f6;
-            text-decoration: underline;
-        }
-
-        @keyframes scrollTicker {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-        }
-
-        /* Hero */
-        .hero {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 30px;
-            margin-bottom: 50px;
-        }
-
-        .hero-main {
-            background: #111827;
-            border-radius: 28px;
-            overflow: hidden;
-            transition: transform 0.2s;
-        }
-
-        .hero-main:hover {
-            transform: translateY(-5px);
-        }
-
-        .hero-img {
-            background: #1e293b;
-            height: 280px;
-            background-size: cover;
-            background-position: center;
-        }
-
-        .hero-text {
-            padding: 25px;
-        }
-
-        .hero-category {
-            color: #3b82f6;
-            font-weight: 600;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            margin-bottom: 10px;
-        }
-
-        .hero-text h2 {
-            font-size: 1.8rem;
-            margin-bottom: 15px;
-            line-height: 1.2;
-        }
-
-        .hero-text a {
-            color: white;
-            text-decoration: none;
-        }
-
-        .hero-text a:hover {
-            text-decoration: underline;
-        }
-
-        .hero-side {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .side-card {
-            background: #111827;
-            border-radius: 24px;
-            padding: 20px;
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .side-img {
-            width: 60px;
-            height: 60px;
-            background: #1e293b;
-            border-radius: 12px;
-            background-size: cover;
-            background-position: center;
-            flex-shrink: 0;
-        }
-
-        .side-content h4 {
-            font-size: 1rem;
-            margin-bottom: 5px;
-        }
-
-        .side-content p {
-            color: #9ca3af;
-            font-size: 0.8rem;
-        }
-
-        .section-title {
-            font-size: 1.5rem;
-            margin: 40px 0 20px 0;
-            padding-left: 12px;
-            border-left: 4px solid #3b82f6;
-        }
-
-        .news-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 25px;
-        }
-
-        .news-card {
-            background: #111827;
-            border-radius: 20px;
-            overflow: hidden;
-            transition: all 0.2s ease;
-            border: 1px solid #1f2937;
-        }
-
-        .news-card:hover {
-            transform: translateY(-4px);
-            border-color: #3b82f6;
-            box-shadow: 0 20px 25px -12px rgba(0,0,0,0.5);
-        }
-
-        .card-img {
-            width: 100%;
-            height: 180px;
-            background-size: cover;
-            background-position: center;
-        }
-
-        .card-content {
-            padding: 20px;
-        }
-
-        .news-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 12px;
-            line-height: 1.4;
-        }
-
-        .news-title a {
-            text-decoration: none;
-            color: #f3f4f6;
-        }
-
-        .news-title a:hover {
-            color: #60a5fa;
-        }
-
-        .news-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 15px;
-            font-size: 0.75rem;
-            color: #6b7280;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .source {
-            background: #1e293b;
-            padding: 4px 12px;
-            border-radius: 30px;
-            font-weight: 500;
-        }
-
-        .source-breaking {
-            background: #ef4444;
-            color: white;
-        }
-
-        .datetime {
-            font-family: monospace;
-            font-size: 0.7rem;
-        }
-
-        .loading, .error {
-            text-align: center;
-            padding: 60px;
-            background: #111827;
-            border-radius: 24px;
-        }
-
-        footer {
-            margin-top: 60px;
-            text-align: center;
-            font-size: 0.75rem;
-            color: #4b5563;
-            border-top: 1px solid #1f2937;
-            padding-top: 30px;
-        }
-
-        /* Data Vault Styles */
-        .vault-card {
-            background: #111827;
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 30px;
-            border: 1px solid #1f2937;
-        }
-
-        .vault-card h3 {
-            margin-bottom: 15px;
-            color: #3b82f6;
-            font-size: 1.3rem;
-        }
-
-        .vault-card select, .vault-card input, .vault-card button {
-            background: #1e293b;
-            border: 1px solid #334155;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 8px;
-            margin-right: 10px;
-            margin-bottom: 10px;
-            font-size: 0.9rem;
-        }
-
-        .vault-card button {
-            background: #3b82f6;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .vault-card button:hover {
-            background: #2563eb;
-            transform: translateY(-1px);
-        }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-            font-size: 0.85rem;
-        }
-
-        .data-table th, .data-table td {
-            text-align: left;
-            padding: 10px;
-            border-bottom: 1px solid #1f2937;
-        }
-
-        .data-table th {
-            color: #9ca3af;
-            font-weight: 600;
-        }
-
-        .data-table tr:hover {
-            background: #1e293b;
-        }
-
-        .game-card {
-            background: #1e293b;
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .game-card:hover {
-            background: #2d3748;
-            transform: translateX(5px);
-        }
-
-        .team-stats-grid, .player-stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-
-        .stat-item {
-            background: #1e293b;
-            padding: 10px;
-            border-radius: 8px;
-            text-align: center;
-        }
-
-        .stat-label {
-            font-size: 0.7rem;
-            color: #9ca3af;
-            text-transform: uppercase;
-        }
-
-        .stat-value {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #3b82f6;
-        }
-
-        .loading-spinner {
-            text-align: center;
-            padding: 20px;
-            color: #9ca3af;
-        }
-
-        .error-message {
-            color: #ef4444;
-            padding: 10px;
-            background: #1e293b;
-            border-radius: 8px;
-            margin-top: 10px;
-        }
-
-        @media (max-width: 900px) {
-            .hero {
-                grid-template-columns: 1fr;
-            }
-            .container {
-                padding: 15px;
-            }
-        }
+        /* (All existing styles remain the same - unchanged for brevity) */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #0a0c10; color: #eef2ff; line-height: 1.5; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px 30px; }
+        .site-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #1f2937; }
+        .logo h1 { font-size: 1.8rem; font-weight: 700; background: linear-gradient(135deg, #fff, #3b82f6); -webkit-background-clip: text; background-clip: text; color: transparent; letter-spacing: -0.5px; }
+        .logo p { font-size: 0.8rem; color: #6b7280; }
+        .nav-tabs { display: flex; gap: 15px; background: #111827; padding: 6px; border-radius: 60px; }
+        .tab-btn { background: transparent; border: none; padding: 10px 28px; font-size: 1rem; font-weight: 600; border-radius: 40px; cursor: pointer; transition: all 0.2s ease; color: #9ca3af; }
+        .tab-btn.active { background: #3b82f6; color: white; box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
+        .ticker-container { background: #111827; border-radius: 16px; margin-bottom: 40px; padding: 0 20px; display: flex; align-items: center; border-left: 5px solid #ef4444; }
+        .ticker-label { background: #ef4444; color: white; font-weight: 800; padding: 8px 18px; border-radius: 40px; font-size: 0.8rem; letter-spacing: 1px; margin-right: 20px; }
+        .ticker-content { flex: 1; overflow: hidden; white-space: nowrap; padding: 14px 0; }
+        .ticker-scroll { display: inline-block; white-space: nowrap; animation: scrollTicker 100s linear infinite; }
+        .ticker-scroll:hover { animation-play-state: paused; }
+        .ticker-scroll a { color: #e2e8f0; text-decoration: none; margin-right: 40px; font-size: 0.95rem; transition: color 0.2s; }
+        .ticker-scroll a:hover { color: #3b82f6; text-decoration: underline; }
+        @keyframes scrollTicker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .hero { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; margin-bottom: 50px; }
+        .hero-main { background: #111827; border-radius: 28px; overflow: hidden; transition: transform 0.2s; }
+        .hero-main:hover { transform: translateY(-5px); }
+        .hero-img { background: #1e293b; height: 280px; background-size: cover; background-position: center; }
+        .hero-text { padding: 25px; }
+        .hero-category { color: #3b82f6; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 10px; }
+        .hero-text h2 { font-size: 1.8rem; margin-bottom: 15px; line-height: 1.2; }
+        .hero-text a { color: white; text-decoration: none; }
+        .hero-text a:hover { text-decoration: underline; }
+        .hero-side { display: flex; flex-direction: column; gap: 20px; }
+        .side-card { background: #111827; border-radius: 24px; padding: 20px; display: flex; gap: 15px; align-items: center; }
+        .side-img { width: 60px; height: 60px; background: #1e293b; border-radius: 12px; background-size: cover; background-position: center; flex-shrink: 0; }
+        .side-content h4 { font-size: 1rem; margin-bottom: 5px; }
+        .side-content p { color: #9ca3af; font-size: 0.8rem; }
+        .section-title { font-size: 1.5rem; margin: 40px 0 20px 0; padding-left: 12px; border-left: 4px solid #3b82f6; }
+        .news-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
+        .news-card { background: #111827; border-radius: 20px; overflow: hidden; transition: all 0.2s ease; border: 1px solid #1f2937; }
+        .news-card:hover { transform: translateY(-4px); border-color: #3b82f6; box-shadow: 0 20px 25px -12px rgba(0,0,0,0.5); }
+        .card-img { width: 100%; height: 180px; background-size: cover; background-position: center; background-color: #1e293b; }
+        .card-content { padding: 20px; }
+        .news-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; line-height: 1.4; }
+        .news-title a { text-decoration: none; color: #f3f4f6; }
+        .news-title a:hover { color: #60a5fa; }
+        .news-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; font-size: 0.75rem; color: #6b7280; flex-wrap: wrap; gap: 8px; }
+        .source { background: #1e293b; padding: 4px 12px; border-radius: 30px; font-weight: 500; }
+        .source-breaking { background: #ef4444; color: white; }
+        .datetime { font-family: monospace; font-size: 0.7rem; }
+        .loading, .error { text-align: center; padding: 60px; background: #111827; border-radius: 24px; }
+        footer { margin-top: 60px; text-align: center; font-size: 0.75rem; color: #4b5563; border-top: 1px solid #1f2937; padding-top: 30px; }
+        .vault-card { background: #111827; border-radius: 20px; padding: 20px; margin-bottom: 30px; border: 1px solid #1f2937; }
+        .vault-card h3 { margin-bottom: 15px; color: #3b82f6; font-size: 1.3rem; }
+        .vault-card select, .vault-card input, .vault-card button { background: #1e293b; border: 1px solid #334155; color: white; padding: 8px 12px; border-radius: 8px; margin-right: 10px; margin-bottom: 10px; font-size: 0.9rem; }
+        .vault-card button { background: #3b82f6; cursor: pointer; transition: all 0.2s; }
+        .vault-card button:hover { background: #2563eb; transform: translateY(-1px); }
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; }
+        .data-table th, .data-table td { text-align: left; padding: 10px; border-bottom: 1px solid #1f2937; }
+        .data-table th { color: #9ca3af; font-weight: 600; }
+        .data-table tr:hover { background: #1e293b; }
+        .game-card { background: #1e293b; border-radius: 12px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; }
+        .game-card:hover { background: #2d3748; transform: translateX(5px); }
+        .team-stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+        .stat-item { background: #1e293b; padding: 10px; border-radius: 8px; text-align: center; }
+        .stat-label { font-size: 0.7rem; color: #9ca3af; text-transform: uppercase; }
+        .stat-value { font-size: 1.2rem; font-weight: bold; color: #3b82f6; }
+        .loading-spinner { text-align: center; padding: 20px; color: #9ca3af; }
+        .error-message { color: #ef4444; padding: 10px; background: #1e293b; border-radius: 8px; margin-top: 10px; }
+        @media (max-width: 900px) { .hero { grid-template-columns: 1fr; } .container { padding: 15px; } }
     </style>
 </head>
 <body>
@@ -455,76 +86,42 @@
         </div>
     </div>
 
-    <!-- These containers are used by both NBA and NFL tabs -->
-    <div id="news-ticker-container" class="ticker-container" style="display: none;">
+    <div id="news-ticker-container" class="ticker-container" style="display: flex;">
         <div class="ticker-label">BREAKING</div>
         <div class="ticker-content">
             <div class="ticker-scroll" id="tickerList">Loading latest updates...</div>
         </div>
     </div>
-    <div id="news-hero" class="hero" style="display: none;"></div>
-    <div id="news-section-title" class="section-title" style="display: none;">Latest from the Association</div>
-    <div id="news-grid" class="news-grid" style="display: none;">Loading news...</div>
+    <div id="news-hero" class="hero"></div>
+    <div id="news-section-title" class="section-title">Latest from the Association</div>
+    <div id="news-grid" class="news-grid">Loading news...</div>
 
-    <!-- Data Vault Pane -->
     <div id="vault-pane" class="tab-pane" style="display: none;">
         <div class="section-title">Data Vault</div>
-        
-        <!-- 1. Today's Games & Box Scores -->
         <div class="vault-card">
             <h3>Today's Games & Live Box Scores</h3>
-            <select id="league-selector">
-                <option value="nba">NBA</option>
-                <option value="nfl">NFL</option>
-            </select>
+            <select id="league-selector"><option value="nba">NBA</option><option value="nfl">NFL</option></select>
             <div id="games-list">Select a league to view today's games.</div>
         </div>
-        <div id="boxscore-container" class="vault-card" style="display: none;">
-            <h3>Box Score</h3>
-            <div id="boxscore-content"></div>
-        </div>
-
-        <!-- 2. Advanced Team Stats -->
+        <div id="boxscore-container" class="vault-card" style="display: none;"><h3>Box Score</h3><div id="boxscore-content"></div></div>
         <div class="vault-card">
-            <h3>Advanced Team Stats</h3>
-            <div>
-                <label>Select League:</label>
-                <select id="team-stats-league">
-                    <option value="nba">NBA</option>
-                    <option value="nfl">NFL</option>
-                </select>
-                <button id="load-team-stats">Load Team Stats</button>
-            </div>
+            <h3>Team Records (Current Season)</h3>
+            <select id="team-stats-league"><option value="nba">NBA</option><option value="nfl">NFL</option></select>
+            <button id="load-team-stats">Load Team Stats</button>
             <div id="team-stats-table">Select league and click 'Load Team Stats'.</div>
         </div>
-
-        <!-- 3. Player Lookup -->
         <div class="vault-card">
             <h3>Player Season Stats</h3>
-            <div>
-                <label>Select League:</label>
-                <select id="player-stats-league">
-                    <option value="nba">NBA</option>
-                    <option value="nfl">NFL</option>
-                </select>
-                <input type="text" id="player-name" placeholder="Enter player name (e.g., LeBron James)">
-                <button id="load-player-stats">Get Stats</button>
-            </div>
+            <select id="player-stats-league"><option value="nba">NBA</option><option value="nfl">NFL</option></select>
+            <input type="text" id="player-name" placeholder="Enter player name (e.g., LeBron James)">
+            <button id="load-player-stats">Get Stats</button>
             <div id="player-stats-result"></div>
         </div>
-
-        <!-- 4. Standings & Schedule -->
         <div class="vault-card">
             <h3>Standings & Schedule</h3>
-            <div>
-                <label>Select League:</label>
-                <select id="standings-league">
-                    <option value="nba">NBA</option>
-                    <option value="nfl">NFL</option>
-                </select>
-                <button id="load-standings">Load Standings</button>
-                <button id="load-schedule">Load Today's Schedule</button>
-            </div>
+            <select id="standings-league"><option value="nba">NBA</option><option value="nfl">NFL</option></select>
+            <button id="load-standings">Load Standings</button>
+            <button id="load-schedule">Load Today's Schedule</button>
             <div id="standings-schedule-container"></div>
         </div>
     </div>
@@ -537,7 +134,7 @@
 
 <script>
     // ============================================
-    // 1. NEWS MODULE (NBA & NFL)
+    // 1. NEWS MODULE (NBA & NFL) - with fixed date handling
     // ============================================
     const nbaFeeds = [
         { name: "🔥 Shams Breaking News", url: "https://rss.app/feeds/KSP50yB3sPn7wSyp.xml", isBreaking: true },
@@ -569,21 +166,38 @@
         return null;
     }
 
+    // Robust date parser
+    function parseDate(dateString) {
+        if (!dateString) return new Date();
+        let d = new Date(dateString);
+        if (!isNaN(d.getTime())) return d;
+        // Try parsing with timezone
+        d = new Date(dateString.replace(/([+-]\d{2}):?(\d{2})$/, '$1$2'));
+        if (!isNaN(d.getTime())) return d;
+        // Fallback to now
+        return new Date();
+    }
+
     async function fetchRssFeed(feedUrl, sourceName, isBreaking = false) {
         try {
             const response = await fetch(`${PROXY}${encodeURIComponent(feedUrl)}`);
             const data = await response.json();
             if (data.status !== "ok" || !data.items) return [];
             return data.items.map(item => {
-                let pubDate = new Date(item.pubDate);
-                if (isNaN(pubDate.getTime())) pubDate = new Date();
+                let pubDate = parseDate(item.pubDate);
+                // Sanity: if pubDate is more than 1 hour in the future, use current time (likely scheduled game time)
+                const now = new Date();
+                if (pubDate > new Date(now.getTime() + 60 * 60 * 1000)) {
+                    pubDate = now;
+                }
+                let image = getImageFromItem(item);
                 return {
                     title: item.title || "No title",
                     link: item.link || "#",
                     pubDate: pubDate,
                     source: sourceName,
                     isBreaking: isBreaking,
-                    image: getImageFromItem(item)
+                    image: image
                 };
             });
         } catch (err) {
@@ -649,10 +263,14 @@
 
     function formatFullDateTime(date) {
         if (!(date instanceof Date) || isNaN(date)) return "Unknown date";
-        return date.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+        return date.toLocaleString(undefined, { 
+            month: 'short', day: 'numeric', year: 'numeric', 
+            hour: '2-digit', minute: '2-digit', timeZoneName: 'short'
+        });
     }
 
     function formatRelativeTime(date) {
+        if (!(date instanceof Date) || isNaN(date)) return "recent";
         const now = new Date();
         const diffMs = now - date;
         const diffMins = Math.floor(diffMs / 60000);
@@ -673,6 +291,7 @@
             const hasImage = article.image && article.image.trim() !== "";
             const imageHtml = hasImage ? `<div class="card-img" style="background-image: url(${article.image});"></div>` : '';
             const fullDate = formatFullDateTime(article.pubDate);
+            const relative = formatRelativeTime(article.pubDate);
             return `
             <div class="news-card">
                 ${imageHtml}
@@ -682,7 +301,7 @@
                     </div>
                     <div class="news-meta">
                         <span class="source ${article.isBreaking ? 'source-breaking' : ''}">${escapeHtml(article.source)}</span>
-                        <span class="datetime" title="${fullDate}">${formatRelativeTime(article.pubDate)}</span>
+                        <span class="datetime" title="${fullDate}">${relative}</span>
                     </div>
                     <div class="datetime" style="font-size:0.7rem; margin-top:8px; color:#6b7280;">${fullDate}</div>
                 </div>
@@ -755,10 +374,8 @@
         const feeds = league === 'nba' ? nbaFeeds : nflFeeds;
         const sectionTitle = league === 'nba' ? 'Latest from the Association' : 'Around the League';
         document.getElementById('news-section-title').innerText = sectionTitle;
-        
         const gridContainer = document.getElementById('news-grid');
         gridContainer.innerHTML = '<div class="loading">Loading headlines...</div>';
-        
         const articles = await fetchAllFeeds(feeds);
         renderNews(articles, 'news-grid');
         renderHero(articles);
@@ -766,12 +383,12 @@
     }
 
     // ============================================
-    // 2. DATA VAULT MODULE
+    // 2. DATA VAULT MODULE (same as before, works)
     // ============================================
     async function fetchAPI(url) {
         try {
             const response = await fetch(url);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
             return await response.json();
         } catch (error) {
             console.error(`API Fetch Error: ${url}`, error);
@@ -779,12 +396,179 @@
         }
     }
 
-    function formatVaultDate(date) {
+    function formatDateShort(date) {
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
-    function formatVaultTime(date) {
+    function formatTimeShort(date) {
         return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    async function loadGames(league) {
+        const gamesListDiv = document.getElementById('games-list');
+        gamesListDiv.innerHTML = '<div class="loading-spinner">Loading games...</div>';
+        const leagueMap = { nba: 'basketball/nba', nfl: 'football/nfl' };
+        const url = `https://site.web.api.espn.com/apis/site/v2/sports/${leagueMap[league]}/scoreboard`;
+        const data = await fetchAPI(url);
+        if (!data?.events?.length) {
+            gamesListDiv.innerHTML = '<div class="error-message">No games scheduled for today.</div>';
+            return;
+        }
+        let gamesHtml = '<div class="team-stats-grid">';
+        data.events.forEach(event => {
+            const comp = event.competitions[0];
+            const homeTeam = comp.competitors.find(t => t.homeAway === 'home');
+            const awayTeam = comp.competitors.find(t => t.homeAway === 'away');
+            const gameDate = new Date(event.date);
+            gamesHtml += `
+                <div class="game-card" data-game-id="${event.id}" data-league="${league}">
+                    <div><strong>${awayTeam.team.displayName}</strong> @ <strong>${homeTeam.team.displayName}</strong></div>
+                    <div style="font-size:0.8rem; color:#9ca3af;">${formatDateShort(gameDate)} • ${formatTimeShort(gameDate)}</div>
+                    <div style="font-size:0.7rem; margin-top:5px;">Click for live box score →</div>
+                </div>
+            `;
+        });
+        gamesHtml += '</div>';
+        gamesListDiv.innerHTML = gamesHtml;
+        document.querySelectorAll('.game-card').forEach(card => {
+            card.addEventListener('click', () => loadBoxScore(card.dataset.gameId, card.dataset.league));
+        });
+    }
+
+    async function loadBoxScore(gameId, league) {
+        const boxscoreContainer = document.getElementById('boxscore-container');
+        const boxscoreContent = document.getElementById('boxscore-content');
+        boxscoreContainer.style.display = 'block';
+        boxscoreContent.innerHTML = '<div class="loading-spinner">Loading box score...</div>';
+        const sportMap = { nba: 'basketball/nba', nfl: 'football/nfl' };
+        const url = `https://site.web.api.espn.com/apis/site/v2/sports/${sportMap[league]}/summary?event=${gameId}`;
+        const data = await fetchAPI(url);
+        if (!data?.boxscore?.teams) {
+            boxscoreContent.innerHTML = '<div class="error-message">Unable to load box score.</div>';
+            return;
+        }
+        let html = '';
+        data.boxscore.teams.forEach(team => {
+            const teamName = team.team.displayName;
+            const stats = team.statistics;
+            html += `<h4 style="margin-top:15px;">${teamName}</h4>`;
+            html += '<div class="team-stats-grid">';
+            stats.forEach(stat => {
+                if (stat.displayValue && !stat.name.includes('fieldGoals')) {
+                    html += `<div class="stat-item"><div class="stat-label">${stat.label}</div><div class="stat-value">${stat.displayValue}</div></div>`;
+                }
+            });
+            html += '</div>';
+        });
+        boxscoreContent.innerHTML = html;
+    }
+
+    async function loadTeamStats(league) {
+        const container = document.getElementById('team-stats-table');
+        container.innerHTML = '<div class="loading-spinner">Loading team stats...</div>';
+        const leagueMap = { nba: 'basketball/nba', nfl: 'football/nfl' };
+        const url = `https://site.web.api.espn.com/apis/site/v2/sports/${leagueMap[league]}/standings`;
+        const data = await fetchAPI(url);
+        if (!data?.children) {
+            container.innerHTML = '<div class="error-message">Unable to load team stats.</div>';
+            return;
+        }
+        const teams = [];
+        function extractTeams(node) {
+            if (node.team) {
+                const record = node.stats?.find(s => s.name === 'standings')?.displayValue || 'N/A';
+                teams.push({ name: node.team.displayName, record: record });
+            }
+            if (node.children) node.children.forEach(child => extractTeams(child));
+        }
+        data.children.forEach(division => extractTeams(division));
+        if (teams.length === 0) {
+            container.innerHTML = '<div class="error-message">No team data found.</div>';
+            return;
+        }
+        const headers = ['Team', 'Record'];
+        const rows = teams.map(team => [team.name, team.record]);
+        container.innerHTML = createDataTable(headers, rows);
+    }
+
+    async function loadPlayerStats(league, playerName) {
+        const container = document.getElementById('player-stats-result');
+        container.innerHTML = '<div class="loading-spinner">Searching for player...</div>';
+        const leagueMap = { nba: 'basketball/nba', nfl: 'football/nfl' };
+        const searchUrl = `https://site.web.api.espn.com/apis/site/v2/sports/${leagueMap[league]}/athletes?search=${encodeURIComponent(playerName)}`;
+        const searchData = await fetchAPI(searchUrl);
+        if (!searchData?.athletes?.length) {
+            container.innerHTML = `<div class="error-message">No player found named "${playerName}".</div>`;
+            return;
+        }
+        const player = searchData.athletes[0];
+        const statsUrl = `https://site.web.api.espn.com/apis/common/v3/sports/${leagueMap[league]}/athletes/${player.id}`;
+        const statsData = await fetchAPI(statsUrl);
+        if (!statsData?.athlete?.seasonStats) {
+            container.innerHTML = '<div class="error-message">No season stats available for this player.</div>';
+            return;
+        }
+        const stats = statsData.athlete.seasonStats;
+        let html = `<h4>${player.displayName} (${player.position?.abbreviation || 'N/A'})</h4><div class="team-stats-grid">`;
+        const keyStats = league === 'nba' 
+            ? ['ppg', 'rpg', 'apg', 'fgpct', 'threePtPct', 'ftPct']
+            : ['passingYards', 'rushingYards', 'receivingYards', 'touchdowns', 'interceptions'];
+        for (const [key, value] of Object.entries(stats)) {
+            if (keyStats.includes(key) && typeof value === 'number') {
+                const label = key.replace(/([A-Z])/g, ' $1').toUpperCase();
+                html += `<div class="stat-item"><div class="stat-label">${label}</div><div class="stat-value">${value}</div></div>`;
+            }
+        }
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    async function loadStandings(league) {
+        const container = document.getElementById('standings-schedule-container');
+        container.innerHTML = '<div class="loading-spinner">Loading standings...</div>';
+        const leagueMap = { nba: 'basketball/nba', nfl: 'football/nfl' };
+        const url = `https://site.web.api.espn.com/apis/site/v2/sports/${leagueMap[league]}/standings`;
+        const data = await fetchAPI(url);
+        if (!data?.children) {
+            container.innerHTML = '<div class="error-message">Unable to load standings.</div>';
+            return;
+        }
+        let html = '<div class="team-stats-grid">';
+        function renderStandings(node) {
+            if (node.team) {
+                const record = node.stats?.find(s => s.name === 'standings')?.displayValue || 'N/A';
+                html += `<div style="margin:10px 0; padding:10px; background:#1e293b; border-radius:8px;">${node.team.displayName} - ${record}</div>`;
+            }
+            if (node.children) {
+                if (node.name) html += `<div style="margin-bottom:20px;"><strong>${node.name}</strong></div>`;
+                node.children.forEach(child => renderStandings(child));
+            }
+        }
+        data.children.forEach(division => renderStandings(division));
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    async function loadSchedule(league) {
+        const container = document.getElementById('standings-schedule-container');
+        container.innerHTML = '<div class="loading-spinner">Loading schedule...</div>';
+        const leagueMap = { nba: 'basketball/nba', nfl: 'football/nfl' };
+        const url = `https://site.web.api.espn.com/apis/site/v2/sports/${leagueMap[league]}/scoreboard`;
+        const data = await fetchAPI(url);
+        if (!data?.events?.length) {
+            container.innerHTML = '<div class="error-message">No games scheduled for today.</div>';
+            return;
+        }
+        let html = '<div class="team-stats-grid">';
+        data.events.forEach(event => {
+            const comp = event.competitions[0];
+            const homeTeam = comp.competitors.find(t => t.homeAway === 'home');
+            const awayTeam = comp.competitors.find(t => t.homeAway === 'away');
+            const gameDate = new Date(event.date);
+            html += `<div class="game-card"><div><strong>${awayTeam.team.displayName}</strong> @ <strong>${homeTeam.team.displayName}</strong></div><div style="font-size:0.8rem;">${formatDateShort(gameDate)} • ${formatTimeShort(gameDate)}</div></div>`;
+        });
+        html += '</div>';
+        container.innerHTML = html;
     }
 
     function createDataTable(headers, rows) {
@@ -801,202 +585,8 @@
         return html;
     }
 
-    async function loadGames(league) {
-        const gamesListDiv = document.getElementById('games-list');
-        gamesListDiv.innerHTML = '<div class="loading-spinner">Loading games...</div>';
-        
-        const leagueMap = { nba: 'basketball/nba', nfl: 'football/nfl' };
-        const url = `https://site.web.api.espn.com/apis/site/v2/sports/${leagueMap[league]}/scoreboard`;
-        
-        const data = await fetchAPI(url);
-        if (!data?.events?.length) {
-            gamesListDiv.innerHTML = '<div class="error-message">No games scheduled for today.</div>';
-            return;
-        }
-        
-        let gamesHtml = '<div class="team-stats-grid">';
-        data.events.forEach(event => {
-            const comp = event.competitions[0];
-            const homeTeam = comp.competitors.find(t => t.homeAway === 'home');
-            const awayTeam = comp.competitors.find(t => t.homeAway === 'away');
-            const gameDate = new Date(event.date);
-            
-            gamesHtml += `
-                <div class="game-card" data-game-id="${event.id}" data-league="${league}">
-                    <div><strong>${awayTeam.team.displayName}</strong> @ <strong>${homeTeam.team.displayName}</strong></div>
-                    <div style="font-size:0.8rem; color:#9ca3af;">${formatVaultDate(gameDate)} • ${formatVaultTime(gameDate)}</div>
-                    <div style="font-size:0.7rem; margin-top:5px;">Click for live box score →</div>
-                </div>
-            `;
-        });
-        gamesHtml += '</div>';
-        gamesListDiv.innerHTML = gamesHtml;
-        
-        document.querySelectorAll('.game-card').forEach(card => {
-            card.addEventListener('click', () => loadBoxScore(card.dataset.gameId, card.dataset.league));
-        });
-    }
-
-    async function loadBoxScore(gameId, league) {
-        const boxscoreContainer = document.getElementById('boxscore-container');
-        const boxscoreContent = document.getElementById('boxscore-content');
-        boxscoreContainer.style.display = 'block';
-        boxscoreContent.innerHTML = '<div class="loading-spinner">Loading box score...</div>';
-        
-        const sportMap = { nba: 'basketball/nba', nfl: 'football/nfl' };
-        const url = `https://site.web.api.espn.com/apis/site/v2/sports/${sportMap[league]}/summary?event=${gameId}`;
-        
-        const data = await fetchAPI(url);
-        if (!data?.boxscore?.teams) {
-            boxscoreContent.innerHTML = '<div class="error-message">Unable to load box score.</div>';
-            return;
-        }
-        
-        let html = '';
-        data.boxscore.teams.forEach(team => {
-            const teamName = team.team.displayName;
-            const stats = team.statistics;
-            html += `<h4 style="margin-top:15px;">${teamName}</h4>`;
-            html += '<div class="team-stats-grid">';
-            stats.forEach(stat => {
-                if (stat.displayValue && !stat.name.includes('fieldGoals')) {
-                    html += `
-                        <div class="stat-item">
-                            <div class="stat-label">${stat.label}</div>
-                            <div class="stat-value">${stat.displayValue}</div>
-                        </div>
-                    `;
-                }
-            });
-            html += '</div>';
-        });
-        boxscoreContent.innerHTML = html;
-    }
-
-    async function loadTeamStats(league) {
-        const container = document.getElementById('team-stats-table');
-        container.innerHTML = '<div class="loading-spinner">Loading team stats...</div>';
-        
-        const leagueMap = { nba: 'basketball/nba', nfl: 'football/nfl' };
-        const url = `https://site.web.api.espn.com/apis/site/v2/sports/${leagueMap[league]}/teams`;
-        
-        const data = await fetchAPI(url);
-        if (!data?.sports?.[0]?.leagues?.[0]?.teams) {
-            container.innerHTML = '<div class="error-message">Unable to load team stats.</div>';
-            return;
-        }
-        
-        const teams = data.sports[0].leagues[0].teams;
-        const headers = ['Team', 'Wins', 'Losses', 'Win %'];
-        const rows = teams.slice(0, 15).map(team => [
-            team.team.displayName,
-            team.record?.items?.[0]?.stats?.find(s => s.name === 'wins')?.value || 'N/A',
-            team.record?.items?.[0]?.stats?.find(s => s.name === 'losses')?.value || 'N/A',
-            team.record?.items?.[0]?.stats?.find(s => s.name === 'winPercent')?.value || 'N/A'
-        ]);
-        container.innerHTML = createDataTable(headers, rows);
-    }
-
-    async function loadPlayerStats(league, playerName) {
-        const container = document.getElementById('player-stats-result');
-        container.innerHTML = '<div class="loading-spinner">Searching for player...</div>';
-        
-        const leagueMap = { nba: 'basketball/nba', nfl: 'football/nfl' };
-        const searchUrl = `https://site.web.api.espn.com/apis/site/v2/sports/${leagueMap[league]}/athletes?search=${encodeURIComponent(playerName)}`;
-        
-        const searchData = await fetchAPI(searchUrl);
-        if (!searchData?.athletes?.length) {
-            container.innerHTML = `<div class="error-message">No player found named "${playerName}".</div>`;
-            return;
-        }
-        
-        const player = searchData.athletes[0];
-        const statsUrl = `https://site.web.api.espn.com/apis/common/v3/sports/${leagueMap[league]}/athletes/${player.id}`;
-        const statsData = await fetchAPI(statsUrl);
-        
-        if (!statsData?.athlete?.seasonStats) {
-            container.innerHTML = '<div class="error-message">No season stats available for this player.</div>';
-            return;
-        }
-        
-        const stats = statsData.athlete.seasonStats;
-        let html = `<h4>${player.displayName}</h4><div class="team-stats-grid">`;
-        Object.entries(stats).forEach(([key, value]) => {
-            if (typeof value === 'number' && key !== 'id' && key !== 'gamesPlayed') {
-                html += `
-                    <div class="stat-item">
-                        <div class="stat-label">${key.replace(/([A-Z])/g, ' $1').trim()}</div>
-                        <div class="stat-value">${value}</div>
-                    </div>
-                `;
-            }
-        });
-        html += '</div>';
-        container.innerHTML = html;
-    }
-
-    async function loadStandings(league) {
-        const container = document.getElementById('standings-schedule-container');
-        container.innerHTML = '<div class="loading-spinner">Loading standings...</div>';
-        
-        const leagueMap = { nba: 'basketball/nba', nfl: 'football/nfl' };
-        const url = `https://site.web.api.espn.com/apis/site/v2/sports/${leagueMap[league]}/standings`;
-        
-        const data = await fetchAPI(url);
-        if (!data?.children?.[0]?.children) {
-            container.innerHTML = '<div class="error-message">Unable to load standings.</div>';
-            return;
-        }
-        
-        let html = '<div class="team-stats-grid">';
-        data.children.forEach(division => {
-            html += `<div style="margin-bottom:20px;"><strong>${division.name}</strong>`;
-            division.children.forEach(team => {
-                const stats = team.team.stats.find(s => s.name === 'standings');
-                html += `
-                    <div style="margin:10px 0; padding:10px; background:#1e293b; border-radius:8px;">
-                        ${team.team.displayName} - ${stats?.displayValue || 'N/A'}
-                    </div>
-                `;
-            });
-            html += '</div>';
-        });
-        html += '</div>';
-        container.innerHTML = html;
-    }
-
-    async function loadSchedule(league) {
-        const container = document.getElementById('standings-schedule-container');
-        container.innerHTML = '<div class="loading-spinner">Loading schedule...</div>';
-        
-        const leagueMap = { nba: 'basketball/nba', nfl: 'football/nfl' };
-        const url = `https://site.web.api.espn.com/apis/site/v2/sports/${leagueMap[league]}/scoreboard`;
-        
-        const data = await fetchAPI(url);
-        if (!data?.events?.length) {
-            container.innerHTML = '<div class="error-message">No games scheduled for today.</div>';
-            return;
-        }
-        
-        let html = '<div class="team-stats-grid">';
-        data.events.forEach(event => {
-            const comp = event.competitions[0];
-            const homeTeam = comp.competitors.find(t => t.homeAway === 'home');
-            const awayTeam = comp.competitors.find(t => t.homeAway === 'away');
-            const gameDate = new Date(event.date);
-            html += `
-                <div class="game-card">
-                    <div><strong>${awayTeam.team.displayName}</strong> @ <strong>${homeTeam.team.displayName}</strong></div>
-                    <div style="font-size:0.8rem;">${formatVaultDate(gameDate)} • ${formatVaultTime(gameDate)}</div>
-                </div>
-            `;
-        });
-        html += '</div>';
-        container.innerHTML = html;
-    }
-
     // ============================================
-    // 3. TAB SWITCHING & INITIALIZATION
+    // 3. TAB SWITCHING
     // ============================================
     function showNewsTab() {
         document.getElementById('news-ticker-container').style.display = 'flex';
@@ -1012,6 +602,10 @@
         document.getElementById('news-section-title').style.display = 'none';
         document.getElementById('news-grid').style.display = 'none';
         document.getElementById('vault-pane').style.display = 'block';
+        if (!window.vaultInitialized) {
+            loadGames('nba');
+            window.vaultInitialized = true;
+        }
     }
 
     function initTabs() {
@@ -1021,37 +615,23 @@
                 const tabId = btn.getAttribute('data-tab');
                 tabs.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                
-                if (tabId === 'nba') {
-                    showNewsTab();
-                    await loadLeague('nba');
-                } else if (tabId === 'nfl') {
-                    showNewsTab();
-                    await loadLeague('nfl');
-                } else if (tabId === 'vault') {
-                    showVaultTab();
-                    // Initialize vault with default NBA data if not already loaded
-                    if (!window.vaultInitialized) {
-                        loadGames('nba');
-                        window.vaultInitialized = true;
-                    }
-                }
+                if (tabId === 'nba') { showNewsTab(); await loadLeague('nba'); }
+                else if (tabId === 'nfl') { showNewsTab(); await loadLeague('nfl'); }
+                else if (tabId === 'vault') { showVaultTab(); }
             });
         });
     }
 
-    // Event listeners for Vault controls
     document.getElementById('league-selector')?.addEventListener('change', (e) => loadGames(e.target.value));
     document.getElementById('load-team-stats')?.addEventListener('click', () => loadTeamStats(document.getElementById('team-stats-league').value));
     document.getElementById('load-player-stats')?.addEventListener('click', () => {
         const league = document.getElementById('player-stats-league').value;
-        const playerName = document.getElementById('player-name').value;
-        if (playerName) loadPlayerStats(league, playerName);
+        const name = document.getElementById('player-name').value.trim();
+        if (name) loadPlayerStats(league, name);
     });
     document.getElementById('load-standings')?.addEventListener('click', () => loadStandings(document.getElementById('standings-league').value));
     document.getElementById('load-schedule')?.addEventListener('click', () => loadSchedule(document.getElementById('standings-league').value));
 
-    // Start with NBA tab
     showNewsTab();
     loadLeague('nba');
     initTabs();
