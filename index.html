@@ -106,7 +106,11 @@
         .ticker-scroll {
             display: inline-block;
             white-space: nowrap;
-            animation: scrollTicker 60s linear infinite;
+            animation: scrollTicker 90s linear infinite;
+        }
+
+        .ticker-scroll:hover {
+            animation-play-state: paused;
         }
 
         .ticker-scroll a {
@@ -206,6 +210,10 @@
             background-size: cover;
             background-position: center;
             flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
         }
 
         .side-content h4 {
@@ -251,6 +259,10 @@
             background: #1e293b;
             background-size: cover;
             background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
         }
 
         .card-content {
@@ -343,11 +355,11 @@
     <div class="hero" id="heroSection"></div>
 
     <div id="nba-pane" class="tab-pane active-pane">
-        <div class="section-title">Latest from the Association</div>
+        <div class="section-title" id="sectionTitle">Latest from the Association</div>
         <div class="news-grid" id="nba-news">Loading NBA news...</div>
     </div>
     <div id="nfl-pane" class="tab-pane">
-        <div class="section-title">Around the League</div>
+        <div class="section-title" id="sectionTitleNFL">Around the League</div>
         <div class="news-grid" id="nfl-news">Loading NFL news...</div>
     </div>
 
@@ -360,7 +372,6 @@
 
 <script>
     // ---------- RSS FEEDS ----------
-    // NBA Feeds including Shams Charania
     const nbaFeeds = [
         { name: "🔥 Shams Breaking News", url: "https://rss.app/feeds/KSP50yB3sPn7wSyp.xml", isBreaking: true },
         { name: "ESPN NBA", url: "https://www.espn.com/espn/rss/nba/news" },
@@ -371,7 +382,6 @@
         { name: "Sports Illustrated NBA", url: "https://www.si.com/rss/nba.rss" }
     ];
 
-    // NFL Feeds including Adam Schefter
     const nflFeeds = [
         { name: "🔥 Adam Schefter Breaking News", url: "https://rss.app/feeds/hAcUsz9WSpqcLFsq.xml", isBreaking: true },
         { name: "ESPN NFL", url: "https://www.espn.com/espn/rss/nfl/news" },
@@ -383,12 +393,37 @@
     ];
 
     const PROXY = "https://api.rss2json.com/v1/api.json?rss_url=";
+    const FALLBACK_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 13c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z'/%3E%3C/svg%3E";
 
     function getImageFromItem(item) {
         if (item.enclosure && item.enclosure.link) return item.enclosure.link;
         if (item.thumbnail) return item.thumbnail;
         if (item.mediaContent && item.mediaContent.url) return item.mediaContent.url;
         return null;
+    }
+
+    // Simple deduplication based on title similarity (case-insensitive, remove common words)
+    function normalizeTitle(title) {
+        return title.toLowerCase()
+            .replace(/[^\w\s]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function isDuplicate(newTitle, existingTitles, threshold = 0.7) {
+        const newNorm = normalizeTitle(newTitle);
+        for (let existing of existingTitles) {
+            const existingNorm = normalizeTitle(existing);
+            // Simple similarity: if one contains the other or they share long common substring
+            if (newNorm.includes(existingNorm) || existingNorm.includes(newNorm)) return true;
+            // Word-based overlap
+            const words1 = newNorm.split(' ');
+            const words2 = existingNorm.split(' ');
+            const common = words1.filter(w => words2.includes(w)).length;
+            const similarity = common / Math.max(words1.length, words2.length);
+            if (similarity > threshold) return true;
+        }
+        return false;
     }
 
     async function fetchRssFeed(feedUrl, sourceName, isBreaking = false) {
@@ -420,8 +455,19 @@
                 allArticles = allArticles.concat(res.value);
             }
         }
+        // Sort by newest first
         allArticles.sort((a, b) => b.pubDate - a.pubDate);
-        return allArticles;
+        
+        // Deduplicate based on title similarity
+        const uniqueArticles = [];
+        const usedTitles = [];
+        for (let article of allArticles) {
+            if (!isDuplicate(article.title, usedTitles, 0.65)) {
+                uniqueArticles.push(article);
+                usedTitles.push(article.title);
+            }
+        }
+        return uniqueArticles;
     }
 
     function renderNews(articles, containerId) {
@@ -432,10 +478,14 @@
             return;
         }
         const html = articles.map(article => {
-            const imageStyle = article.image ? `background-image: url(${article.image});` : 'background-color: #1e293b;';
+            const hasImage = article.image;
+            const imageStyle = hasImage ? `background-image: url(${article.image});` : '';
+            const imgContent = hasImage ? '' : '<span style="font-size: 3rem;">📰</span>';
             return `
             <div class="news-card">
-                <div class="card-img" style="${imageStyle} background-size: cover; background-position: center;"></div>
+                <div class="card-img" style="${imageStyle} background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center;">
+                    ${imgContent}
+                </div>
                 <div class="card-content">
                     <div class="news-title">
                         <a href="${article.link}" target="_blank" rel="noopener noreferrer">${escapeHtml(article.title)}</a>
@@ -456,10 +506,14 @@
         const top3 = articles.slice(0, 3);
         const mainStory = top3[0];
         const sideStories = top3.slice(1);
-        const mainImageStyle = mainStory.image ? `background-image: url(${mainStory.image});` : 'background-color: #1e293b;';
+        const mainHasImage = mainStory.image;
+        const mainImageStyle = mainHasImage ? `background-image: url(${mainStory.image});` : '';
+        const mainImgContent = mainHasImage ? '' : '<span style="font-size: 4rem;">🏀🏈</span>';
         const heroHtml = `
             <div class="hero-main">
-                <div class="hero-img" style="${mainImageStyle} background-size: cover; background-position: center;"></div>
+                <div class="hero-img" style="${mainImageStyle} background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center;">
+                    ${mainImgContent}
+                </div>
                 <div class="hero-text">
                     <div class="hero-category">${escapeHtml(mainStory.source)}</div>
                     <h2><a href="${mainStory.link}" target="_blank">${escapeHtml(mainStory.title)}</a></h2>
@@ -467,10 +521,14 @@
             </div>
             <div class="hero-side">
                 ${sideStories.map(story => {
-                    const sideImageStyle = story.image ? `background-image: url(${story.image});` : 'background-color: #1e293b;';
+                    const sideHasImage = story.image;
+                    const sideImageStyle = sideHasImage ? `background-image: url(${story.image});` : '';
+                    const sideImgContent = sideHasImage ? '' : '<span style="font-size: 1.8rem;">📰</span>';
                     return `
                     <div class="side-card">
-                        <div class="side-img" style="${sideImageStyle} background-size: cover; background-position: center;"></div>
+                        <div class="side-img" style="${sideImageStyle} background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center;">
+                            ${sideImgContent}
+                        </div>
                         <div class="side-content">
                             <h4><a href="${story.link}" target="_blank" style="color:white; text-decoration:none;">${escapeHtml(story.title)}</a></h4>
                             <p>${escapeHtml(story.source)} • ${formatDate(story.pubDate)}</p>
