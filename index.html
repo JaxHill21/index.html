@@ -178,7 +178,6 @@
         { name: "Sports Illustrated NBA", url: "https://www.si.com/rss/nba.rss" }
     ];
 
-    // ---------- FREE RSS FEEDS (NFL) ----------
     const nflFeeds = [
         { name: "ESPN NFL", url: "https://www.espn.com/espn/rss/nfl/news" },
         { name: "Bleacher Report NFL", url: "https://bleacherreport.com/nfl/feed" },
@@ -188,42 +187,22 @@
         { name: "NFL.com", url: "https://www.nfl.com/rss/partner.xml" }
     ];
 
-    // Use a free CORS proxy (allorigins) to fetch RSS -> JSON
-    // Free tier: generous limits. No API key needed.
-    const PROXY = "https://api.allorigins.win/get?url=";
+    // Better CORS proxy that returns JSON directly
+    const PROXY = "https://api.rss2json.com/v1/api.json?rss_url=";
 
     async function fetchRssFeed(feedUrl, sourceName) {
         try {
-            const encodedUrl = encodeURIComponent(feedUrl);
-            const response = await fetch(`${PROXY}${encodedUrl}`);
+            const response = await fetch(`${PROXY}${encodeURIComponent(feedUrl)}`);
             const data = await response.json();
-            // allorigins returns content as string in data.contents
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(data.contents, "text/xml");
-            const items = xmlDoc.querySelectorAll("item");
-            const articles = [];
-            for (let item of items) {
-                const title = item.querySelector("title")?.textContent?.trim() || "No title";
-                let link = item.querySelector("link")?.textContent?.trim();
-                if (!link || link === "#") {
-                    const guid = item.querySelector("guid")?.textContent;
-                    if (guid && guid.startsWith("http")) link = guid;
-                    else link = "#";
-                }
-                const pubDateRaw = item.querySelector("pubDate")?.textContent;
-                let pubDate = new Date(pubDateRaw);
-                if (isNaN(pubDate.getTime())) pubDate = new Date(); // fallback
-                const description = item.querySelector("description")?.textContent?.replace(/<[^>]*>/g, '').substring(0, 120) || "";
-                articles.push({
-                    title,
-                    link,
-                    pubDate,
-                    pubDateRaw: pubDateRaw || "",
-                    source: sourceName,
-                    description
-                });
-            }
-            return articles;
+            if (data.status !== "ok" || !data.items) return [];
+            
+            return data.items.map(item => ({
+                title: item.title || "No title",
+                link: item.link || "#",
+                pubDate: new Date(item.pubDate),
+                source: sourceName,
+                description: item.description?.replace(/<[^>]*>/g, '').substring(0, 120) || ""
+            }));
         } catch (err) {
             console.warn(`Error fetching ${sourceName}:`, err);
             return [];
@@ -239,7 +218,6 @@
                 allArticles = allArticles.concat(res.value);
             }
         }
-        // sort by newest first (breaking at top)
         allArticles.sort((a, b) => b.pubDate - a.pubDate);
         return allArticles;
     }
@@ -286,14 +264,12 @@
         return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     }
 
-    // Show loading indicators
     function setLoading(league) {
         const containerId = league === 'nba' ? 'nba-news' : 'nfl-news';
         const container = document.getElementById(containerId);
         if (container) container.innerHTML = '<div class="loading">📡 Fetching latest headlines...</div>';
     }
 
-    // Load both leagues
     async function loadNBA() {
         setLoading('nba');
         const articles = await fetchAllFeeds(nbaFeeds);
@@ -306,18 +282,15 @@
         renderNews(articles, 'nfl-news');
     }
 
-    // Tab switching logic
     function initTabs() {
         const tabs = document.querySelectorAll('.tab-btn');
         tabs.forEach(btn => {
             btn.addEventListener('click', () => {
                 const tabId = btn.getAttribute('data-tab');
-                // remove active classes
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active-pane'));
                 document.getElementById(`${tabId}-pane`).classList.add('active-pane');
-                // load content if not yet loaded (simple lazy)
                 if (tabId === 'nba' && !window.nbaLoaded) {
                     loadNBA();
                     window.nbaLoaded = true;
@@ -330,10 +303,9 @@
         });
     }
 
-    // Initial load: NBA by default, NFL on first click
     window.nbaLoaded = false;
     window.nflLoaded = false;
-    loadNBA();  // load NBA immediately
+    loadNBA();
     window.nbaLoaded = true;
     initTabs();
 </script>
