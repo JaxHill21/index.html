@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBA & NFL Breaking News Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f4f6f9;
+            color: #1a1e2b;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .sub {
+            color: #5a6874;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid #2e7d64;
+            padding-left: 12px;
+        }
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 24px;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            font-weight: 600;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 30px 30px 0 0;
+            transition: 0.2s;
+            color: #4a5568;
+        }
+        .tab-btn.active {
+            background: white;
+            color: #2e7d64;
+            border-bottom: 3px solid #2e7d64;
+        }
+        .tab-pane {
+            display: none;
+        }
+        .tab-pane.active-pane {
+            display: block;
+        }
+        /* News grid */
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        .news-card {
+            background: white;
+            border-radius: 20px;
+            padding: 18px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transition: 0.2s ease;
+            border-left: 4px solid #2e7d64;
+            display: flex;
+            flex-direction: column;
+        }
+        .news-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 20px rgba(0,0,0,0.1);
+        }
+        .news-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        .news-title a {
+            text-decoration: none;
+            color: #1a2c3e;
+        }
+        .news-title a:hover {
+            color: #2e7d64;
+            text-decoration: underline;
+        }
+        .news-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #6c7a89;
+            margin-top: 12px;
+            border-top: 1px solid #edf2f7;
+            padding-top: 10px;
+        }
+        .source {
+            font-weight: 600;
+            background: #edf2f7;
+            padding: 2px 8px;
+            border-radius: 20px;
+        }
+        .date {
+            font-family: monospace;
+        }
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #5a6874;
+        }
+        .error {
+            background: #ffe6e6;
+            color: #b91c1c;
+            padding: 12px;
+            border-radius: 16px;
+            margin: 20px 0;
+        }
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #7e8c9a;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 20px;
+        }
+        @media (max-width: 700px) {
+            .news-grid {
+                grid-template-columns: 1fr;
+            }
+            .tab-btn {
+                font-size: 1rem;
+                padding: 8px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🏀🏈 Breaking News Hub</h1>
+    <div class="sub">Real‑time NBA & NFL headlines • free • no paywall</div>
+
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="nba">🏀 NBA</button>
+        <button class="tab-btn" data-tab="nfl">🏈 NFL</button>
+    </div>
+
+    <div id="nba-pane" class="tab-pane active-pane">
+        <div class="news-grid" id="nba-news">Loading NBA news...</div>
+    </div>
+    <div id="nfl-pane" class="tab-pane">
+        <div class="news-grid" id="nfl-news">Loading NFL news...</div>
+    </div>
+    <footer>
+        Sources: ESPN, Bleacher Report, Yahoo Sports, RealGM, CBS Sports, SI, NFL.com.<br>
+        Updates every 15 minutes (refresh page). Built with free RSS → JSON.
+    </footer>
+</div>
+
+<script>
+    // ---------- FREE RSS FEEDS (NBA) ----------
+    const nbaFeeds = [
+        { name: "ESPN NBA", url: "https://www.espn.com/espn/rss/nba/news" },
+        { name: "Bleacher Report NBA", url: "https://bleacherreport.com/nba/feed" },
+        { name: "Yahoo Sports NBA", url: "https://sports.yahoo.com/nba/rss/" },
+        { name: "RealGM NBA", url: "http://basketball.realgm.com/wiretap/nba/rss" },
+        { name: "CBS Sports NBA", url: "https://www.cbssports.com/nba/rss/headlines" },
+        { name: "Sports Illustrated NBA", url: "https://www.si.com/rss/nba.rss" }
+    ];
+
+    // ---------- FREE RSS FEEDS (NFL) ----------
+    const nflFeeds = [
+        { name: "ESPN NFL", url: "https://www.espn.com/espn/rss/nfl/news" },
+        { name: "Bleacher Report NFL", url: "https://bleacherreport.com/nfl/feed" },
+        { name: "Yahoo Sports NFL", url: "https://sports.yahoo.com/nfl/rss/" },
+        { name: "RealGM NFL", url: "http://football.realgm.com/src_wiretap/rss" },
+        { name: "CBS Sports NFL", url: "https://www.cbssports.com/nfl/rss/headlines" },
+        { name: "NFL.com", url: "https://www.nfl.com/rss/partner.xml" }
+    ];
+
+    // Use a free CORS proxy (allorigins) to fetch RSS -> JSON
+    // Free tier: generous limits. No API key needed.
+    const PROXY = "https://api.allorigins.win/get?url=";
+
+    async function fetchRssFeed(feedUrl, sourceName) {
+        try {
+            const encodedUrl = encodeURIComponent(feedUrl);
+            const response = await fetch(`${PROXY}${encodedUrl}`);
+            const data = await response.json();
+            // allorigins returns content as string in data.contents
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+            const items = xmlDoc.querySelectorAll("item");
+            const articles = [];
+            for (let item of items) {
+                const title = item.querySelector("title")?.textContent?.trim() || "No title";
+                let link = item.querySelector("link")?.textContent?.trim();
+                if (!link || link === "#") {
+                    const guid = item.querySelector("guid")?.textContent;
+                    if (guid && guid.startsWith("http")) link = guid;
+                    else link = "#";
+                }
+                const pubDateRaw = item.querySelector("pubDate")?.textContent;
+                let pubDate = new Date(pubDateRaw);
+                if (isNaN(pubDate.getTime())) pubDate = new Date(); // fallback
+                const description = item.querySelector("description")?.textContent?.replace(/<[^>]*>/g, '').substring(0, 120) || "";
+                articles.push({
+                    title,
+                    link,
+                    pubDate,
+                    pubDateRaw: pubDateRaw || "",
+                    source: sourceName,
+                    description
+                });
+            }
+            return articles;
+        } catch (err) {
+            console.warn(`Error fetching ${sourceName}:`, err);
+            return [];
+        }
+    }
+
+    async function fetchAllFeeds(feedsArray) {
+        const promises = feedsArray.map(feed => fetchRssFeed(feed.url, feed.name));
+        const results = await Promise.allSettled(promises);
+        let allArticles = [];
+        for (let res of results) {
+            if (res.status === "fulfilled") {
+                allArticles = allArticles.concat(res.value);
+            }
+        }
+        // sort by newest first (breaking at top)
+        allArticles.sort((a, b) => b.pubDate - a.pubDate);
+        return allArticles;
+    }
+
+    function renderNews(articles, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        if (!articles.length) {
+            container.innerHTML = '<div class="error">⚠️ No articles loaded. Some feeds may be temporarily unavailable. Refresh later.</div>';
+            return;
+        }
+        const html = articles.map(article => `
+            <div class="news-card">
+                <div class="news-title">
+                    <a href="${article.link}" target="_blank" rel="noopener noreferrer">${escapeHtml(article.title)}</a>
+                </div>
+                <div class="news-meta">
+                    <span class="source">${escapeHtml(article.source)}</span>
+                    <span class="date">${formatDate(article.pubDate)}</span>
+                </div>
+            </div>
+        `).join('');
+        container.innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function formatDate(date) {
+        if (!(date instanceof Date) || isNaN(date)) return "recent";
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        if (diffMins < 1) return "just now";
+        if (diffMins < 60) return `${diffMins} min ago`;
+        if (diffMins < 1440) return `${Math.floor(diffMins / 60)} hours ago`;
+        return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    }
+
+    // Show loading indicators
+    function setLoading(league) {
+        const containerId = league === 'nba' ? 'nba-news' : 'nfl-news';
+        const container = document.getElementById(containerId);
+        if (container) container.innerHTML = '<div class="loading">📡 Fetching latest headlines...</div>';
+    }
+
+    // Load both leagues
+    async function loadNBA() {
+        setLoading('nba');
+        const articles = await fetchAllFeeds(nbaFeeds);
+        renderNews(articles, 'nba-news');
+    }
+
+    async function loadNFL() {
+        setLoading('nfl');
+        const articles = await fetchAllFeeds(nflFeeds);
+        renderNews(articles, 'nfl-news');
+    }
+
+    // Tab switching logic
+    function initTabs() {
+        const tabs = document.querySelectorAll('.tab-btn');
+        tabs.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabId = btn.getAttribute('data-tab');
+                // remove active classes
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active-pane'));
+                document.getElementById(`${tabId}-pane`).classList.add('active-pane');
+                // load content if not yet loaded (simple lazy)
+                if (tabId === 'nba' && !window.nbaLoaded) {
+                    loadNBA();
+                    window.nbaLoaded = true;
+                }
+                if (tabId === 'nfl' && !window.nflLoaded) {
+                    loadNFL();
+                    window.nflLoaded = true;
+                }
+            });
+        });
+    }
+
+    // Initial load: NBA by default, NFL on first click
+    window.nbaLoaded = false;
+    window.nflLoaded = false;
+    loadNBA();  // load NBA immediately
+    window.nbaLoaded = true;
+    initTabs();
+</script>
+</body>
+</html>
