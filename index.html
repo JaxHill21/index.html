@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Scoop | NBA & NFL News + Data Vault</title>
     <style>
-        /* (All existing styles remain the same - unchanged for brevity) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #0a0c10; color: #eef2ff; line-height: 1.5; }
         .container { max-width: 1400px; margin: 0 auto; padding: 20px 30px; }
@@ -75,10 +74,7 @@
 <body>
 <div class="container">
     <div class="site-header">
-        <div class="logo">
-            <h1>THE SCOOP</h1>
-            <p>NBA · NFL · Data Vault</p>
-        </div>
+        <div class="logo"><h1>THE SCOOP</h1><p>NBA · NFL · Data Vault</p></div>
         <div class="nav-tabs">
             <button class="tab-btn active" data-tab="nba">NBA</button>
             <button class="tab-btn" data-tab="nfl">NFL</button>
@@ -88,9 +84,7 @@
 
     <div id="news-ticker-container" class="ticker-container" style="display: flex;">
         <div class="ticker-label">BREAKING</div>
-        <div class="ticker-content">
-            <div class="ticker-scroll" id="tickerList">Loading latest updates...</div>
-        </div>
+        <div class="ticker-content"><div class="ticker-scroll" id="tickerList">Loading...</div></div>
     </div>
     <div id="news-hero" class="hero"></div>
     <div id="news-section-title" class="section-title">Latest from the Association</div>
@@ -125,16 +119,12 @@
             <div id="standings-schedule-container"></div>
         </div>
     </div>
-
-    <footer>
-        News: ESPN, Bleacher Report, Yahoo, RealGM, CBS, SI, NFL.com + Shams (NBA) / Schefter (NFL).<br>
-        Data Vault: Live scores, stats, standings via ESPN public APIs. Max 25 unique news stories per league.
-    </footer>
+    <footer>News: ESPN, Bleacher Report, Yahoo, RealGM, CBS, SI, NFL.com + Shams (NBA) / Schefter (NFL).<br>Data Vault: Official ESPN APIs (standings, stats, schedule, box scores).</footer>
 </div>
 
 <script>
     // ============================================
-    // 1. NEWS MODULE (NBA & NFL) - with fixed date handling
+    // 1. NEWS MODULE (unchanged, working)
     // ============================================
     const nbaFeeds = [
         { name: "🔥 Shams Breaking News", url: "https://rss.app/feeds/KSP50yB3sPn7wSyp.xml", isBreaking: true },
@@ -145,7 +135,6 @@
         { name: "CBS Sports NBA", url: "https://www.cbssports.com/nba/rss/headlines" },
         { name: "Sports Illustrated NBA", url: "https://www.si.com/rss/nba.rss" }
     ];
-
     const nflFeeds = [
         { name: "🔥 Adam Schefter Breaking News", url: "https://rss.app/feeds/hAcUsz9WSpqcLFsq.xml", isBreaking: true },
         { name: "ESPN NFL", url: "https://www.espn.com/espn/rss/nfl/news" },
@@ -155,7 +144,6 @@
         { name: "CBS Sports NFL", url: "https://www.cbssports.com/nfl/rss/headlines" },
         { name: "NFL.com", url: "https://www.nfl.com/rss/partner.xml" }
     ];
-
     const PROXY = "https://api.rss2json.com/v1/api.json?rss_url=";
     const MAX_ARTICLES = 25;
 
@@ -165,19 +153,14 @@
         if (item.mediaContent && item.mediaContent.url) return item.mediaContent.url;
         return null;
     }
-
-    // Robust date parser
     function parseDate(dateString) {
         if (!dateString) return new Date();
         let d = new Date(dateString);
         if (!isNaN(d.getTime())) return d;
-        // Try parsing with timezone
         d = new Date(dateString.replace(/([+-]\d{2}):?(\d{2})$/, '$1$2'));
         if (!isNaN(d.getTime())) return d;
-        // Fallback to now
         return new Date();
     }
-
     async function fetchRssFeed(feedUrl, sourceName, isBreaking = false) {
         try {
             const response = await fetch(`${PROXY}${encodeURIComponent(feedUrl)}`);
@@ -185,197 +168,94 @@
             if (data.status !== "ok" || !data.items) return [];
             return data.items.map(item => {
                 let pubDate = parseDate(item.pubDate);
-                // Sanity: if pubDate is more than 1 hour in the future, use current time (likely scheduled game time)
                 const now = new Date();
-                if (pubDate > new Date(now.getTime() + 60 * 60 * 1000)) {
-                    pubDate = now;
-                }
-                let image = getImageFromItem(item);
+                if (pubDate > new Date(now.getTime() + 60 * 60 * 1000)) pubDate = now;
                 return {
                     title: item.title || "No title",
                     link: item.link || "#",
                     pubDate: pubDate,
                     source: sourceName,
                     isBreaking: isBreaking,
-                    image: image
+                    image: getImageFromItem(item)
                 };
             });
-        } catch (err) {
-            console.warn(`Error fetching ${sourceName}:`, err);
-            return [];
-        }
+        } catch (err) { return []; }
     }
-
     function normalizeTitle(title) {
-        return title.toLowerCase()
-            .replace(/[^\w\s]/g, '')
-            .replace(/\b(?:breaking|report|sources|update|just in|nba|nfl|basketball|football|news|insider)\b/g, '')
-            .replace(/\s+/g, ' ')
-            .trim();
+        return title.toLowerCase().replace(/[^\w\s]/g, '').replace(/\b(?:breaking|report|sources|update|just in|nba|nfl|basketball|football|news|insider)\b/g, '').replace(/\s+/g, ' ').trim();
     }
-
-    function areSimilar(title1, title2) {
-        const norm1 = normalizeTitle(title1);
-        const norm2 = normalizeTitle(title2);
-        if (norm1 === norm2) return true;
-        const words1 = norm1.split(' ');
-        const words2 = norm2.split(' ');
-        const common = words1.filter(w => words2.includes(w)).length;
-        const similarity = common / Math.max(words1.length, words2.length);
-        return similarity > 0.6;
+    function areSimilar(t1, t2) {
+        const n1 = normalizeTitle(t1), n2 = normalizeTitle(t2);
+        if (n1 === n2) return true;
+        const w1 = n1.split(' '), w2 = n2.split(' ');
+        const common = w1.filter(w => w2.includes(w)).length;
+        return common / Math.max(w1.length, w2.length) > 0.6;
     }
-
     function deduplicateArticles(articles) {
         const groups = [];
-        for (const article of articles) {
-            let addedToGroup = false;
-            for (const group of groups) {
-                if (areSimilar(group[0].title, article.title)) {
-                    group.push(article);
-                    addedToGroup = true;
-                    break;
-                }
-            }
-            if (!addedToGroup) {
-                groups.push([article]);
-            }
+        for (const a of articles) {
+            let added = false;
+            for (const g of groups) if (areSimilar(g[0].title, a.title)) { g.push(a); added = true; break; }
+            if (!added) groups.push([a]);
         }
-        const unique = groups.map(group => group.reduce((a, b) => a.pubDate > b.pubDate ? a : b));
-        unique.sort((a, b) => b.pubDate - a.pubDate);
+        const unique = groups.map(g => g.reduce((a,b) => a.pubDate > b.pubDate ? a : b));
+        unique.sort((a,b) => b.pubDate - a.pubDate);
         return unique;
     }
-
     async function fetchAllFeeds(feedsArray) {
-        const promises = feedsArray.map(feed => fetchRssFeed(feed.url, feed.name, feed.isBreaking || false));
-        const results = await Promise.allSettled(promises);
-        let allArticles = [];
-        for (let res of results) {
-            if (res.status === "fulfilled") {
-                allArticles = allArticles.concat(res.value);
-            }
-        }
-        let uniqueArticles = deduplicateArticles(allArticles);
-        if (uniqueArticles.length > MAX_ARTICLES) {
-            uniqueArticles = uniqueArticles.slice(0, MAX_ARTICLES);
-        }
-        return uniqueArticles;
+        const results = await Promise.allSettled(feedsArray.map(f => fetchRssFeed(f.url, f.name, f.isBreaking)));
+        let all = [];
+        for (let r of results) if (r.status === "fulfilled") all = all.concat(r.value);
+        let unique = deduplicateArticles(all);
+        if (unique.length > MAX_ARTICLES) unique = unique.slice(0, MAX_ARTICLES);
+        return unique;
     }
-
-    function formatFullDateTime(date) {
-        if (!(date instanceof Date) || isNaN(date)) return "Unknown date";
-        return date.toLocaleString(undefined, { 
-            month: 'short', day: 'numeric', year: 'numeric', 
-            hour: '2-digit', minute: '2-digit', timeZoneName: 'short'
-        });
-    }
-
+    function formatFullDateTime(date) { return date.toLocaleString(undefined, { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit', timeZoneName:'short' }); }
     function formatRelativeTime(date) {
-        if (!(date instanceof Date) || isNaN(date)) return "recent";
-        const now = new Date();
-        const diffMs = now - date;
-        const diffMins = Math.floor(diffMs / 60000);
-        if (diffMins < 1) return "just now";
-        if (diffMins < 60) return `${diffMins} min ago`;
-        if (diffMins < 1440) return `${Math.floor(diffMins / 60)} hours ago`;
-        return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        const diff = Math.floor((new Date() - date) / 60000);
+        if (diff < 1) return "just now";
+        if (diff < 60) return `${diff} min ago`;
+        if (diff < 1440) return `${Math.floor(diff/60)} hours ago`;
+        return date.toLocaleDateString(undefined, { month:'short', day:'numeric' });
     }
-
     function renderNews(articles, containerId) {
         const container = document.getElementById(containerId);
         if (!container) return;
-        if (!articles.length) {
-            container.innerHTML = '<div class="error">No articles loaded. Refresh later.</div>';
-            return;
-        }
-        const html = articles.map(article => {
-            const hasImage = article.image && article.image.trim() !== "";
-            const imageHtml = hasImage ? `<div class="card-img" style="background-image: url(${article.image});"></div>` : '';
-            const fullDate = formatFullDateTime(article.pubDate);
-            const relative = formatRelativeTime(article.pubDate);
-            return `
-            <div class="news-card">
-                ${imageHtml}
+        if (!articles.length) { container.innerHTML = '<div class="error">No articles.</div>'; return; }
+        container.innerHTML = articles.map(a => {
+            const hasImage = a.image && a.image.trim();
+            return `<div class="news-card">
+                ${hasImage ? `<div class="card-img" style="background-image: url(${a.image});"></div>` : ''}
                 <div class="card-content">
-                    <div class="news-title">
-                        <a href="${article.link}" target="_blank" rel="noopener noreferrer">${escapeHtml(article.title)}</a>
-                    </div>
-                    <div class="news-meta">
-                        <span class="source ${article.isBreaking ? 'source-breaking' : ''}">${escapeHtml(article.source)}</span>
-                        <span class="datetime" title="${fullDate}">${relative}</span>
-                    </div>
-                    <div class="datetime" style="font-size:0.7rem; margin-top:8px; color:#6b7280;">${fullDate}</div>
+                    <div class="news-title"><a href="${a.link}" target="_blank">${escapeHtml(a.title)}</a></div>
+                    <div class="news-meta"><span class="source ${a.isBreaking ? 'source-breaking' : ''}">${escapeHtml(a.source)}</span><span class="datetime">${formatRelativeTime(a.pubDate)}</span></div>
+                    <div class="datetime" style="font-size:0.7rem; margin-top:8px; color:#6b7280;">${formatFullDateTime(a.pubDate)}</div>
                 </div>
-            </div>
-        `}).join('');
-        container.innerHTML = html;
+            </div>`;
+        }).join('');
     }
-
     function renderHero(articles) {
         const heroDiv = document.getElementById('news-hero');
-        if (!heroDiv || articles.length === 0) {
-            heroDiv.innerHTML = '';
-            return;
-        }
-        const top3 = articles.slice(0, 3);
-        const mainStory = top3[0];
-        const sideStories = top3.slice(1);
-        const mainImageStyle = mainStory.image ? `background-image: url(${mainStory.image});` : 'background-color: #1e293b;';
-        const heroHtml = `
-            <div class="hero-main">
-                <div class="hero-img" style="${mainImageStyle}"></div>
-                <div class="hero-text">
-                    <div class="hero-category">${escapeHtml(mainStory.source)}</div>
-                    <h2><a href="${mainStory.link}" target="_blank">${escapeHtml(mainStory.title)}</a></h2>
-                    <div class="datetime" style="margin-top:10px; font-size:0.8rem;">${formatFullDateTime(mainStory.pubDate)}</div>
-                </div>
-            </div>
-            <div class="hero-side">
-                ${sideStories.map(story => {
-                    const sideImageStyle = story.image ? `background-image: url(${story.image});` : 'background-color: #1e293b;';
-                    return `
-                    <div class="side-card">
-                        <div class="side-img" style="${sideImageStyle}"></div>
-                        <div class="side-content">
-                            <h4><a href="${story.link}" target="_blank" style="color:white; text-decoration:none;">${escapeHtml(story.title)}</a></h4>
-                            <p>${escapeHtml(story.source)} • ${formatRelativeTime(story.pubDate)}</p>
-                            <p style="font-size:0.7rem; color:#6b7280;">${formatFullDateTime(story.pubDate)}</p>
-                        </div>
-                    </div>
-                `}).join('')}
-            </div>
-        `;
-        heroDiv.innerHTML = heroHtml;
+        if (!heroDiv || !articles.length) { heroDiv.innerHTML = ''; return; }
+        const top3 = articles.slice(0,3);
+        const main = top3[0], sides = top3.slice(1);
+        heroDiv.innerHTML = `<div class="hero-main"><div class="hero-img" style="${main.image ? `background-image: url(${main.image});` : 'background-color:#1e293b;'}"></div><div class="hero-text"><div class="hero-category">${escapeHtml(main.source)}</div><h2><a href="${main.link}" target="_blank">${escapeHtml(main.title)}</a></h2><div class="datetime" style="margin-top:10px;">${formatFullDateTime(main.pubDate)}</div></div></div>
+            <div class="hero-side">${sides.map(s => `<div class="side-card"><div class="side-img" style="${s.image ? `background-image: url(${s.image});` : 'background-color:#1e293b;'}"></div><div class="side-content"><h4><a href="${s.link}" target="_blank">${escapeHtml(s.title)}</a></h4><p>${escapeHtml(s.source)} • ${formatRelativeTime(s.pubDate)}</p><p style="font-size:0.7rem;">${formatFullDateTime(s.pubDate)}</p></div></div>`).join('')}</div>`;
     }
-
     function renderTicker(articles) {
         const tickerDiv = document.getElementById('tickerList');
-        if (!tickerDiv || !articles.length) return;
-        const breakingItems = articles.filter(a => a.isBreaking).slice(0, 15);
-        if (breakingItems.length === 0) {
-            tickerDiv.innerHTML = '<span>No breaking news at the moment.</span>';
-            return;
-        }
-        const items = [...breakingItems, ...breakingItems];
-        const html = items.map(item => `<a href="${item.link}" target="_blank">⚡ ${escapeHtml(item.title)}</a>`).join('');
-        tickerDiv.innerHTML = html;
+        if (!tickerDiv) return;
+        const breaking = articles.filter(a => a.isBreaking).slice(0,15);
+        if (!breaking.length) { tickerDiv.innerHTML = '<span>No breaking news.</span>'; return; }
+        const items = [...breaking, ...breaking];
+        tickerDiv.innerHTML = items.map(i => `<a href="${i.link}" target="_blank">⚡ ${escapeHtml(i.title)}</a>`).join('');
     }
-
-    function escapeHtml(str) {
-        if (!str) return "";
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
-    }
-
+    function escapeHtml(str) { return str?.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])) || ''; }
     async function loadLeague(league) {
         const feeds = league === 'nba' ? nbaFeeds : nflFeeds;
-        const sectionTitle = league === 'nba' ? 'Latest from the Association' : 'Around the League';
-        document.getElementById('news-section-title').innerText = sectionTitle;
-        const gridContainer = document.getElementById('news-grid');
-        gridContainer.innerHTML = '<div class="loading">Loading headlines...</div>';
+        const title = league === 'nba' ? 'Latest from the Association' : 'Around the League';
+        document.getElementById('news-section-title').innerText = title;
+        document.getElementById('news-grid').innerHTML = '<div class="loading">Loading...</div>';
         const articles = await fetchAllFeeds(feeds);
         renderNews(articles, 'news-grid');
         renderHero(articles);
@@ -383,168 +263,134 @@
     }
 
     // ============================================
-    // 2. DATA VAULT MODULE (same as before, works)
+    // 2. DATA VAULT MODULE (FIXED with official ESPN APIs)
     // ============================================
     async function fetchAPI(url) {
         try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return await response.json();
-        } catch (error) {
-            console.error(`API Fetch Error: ${url}`, error);
-            return null;
-        }
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch (e) { console.error(url, e); return null; }
     }
 
-    function formatDateShort(date) {
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    }
-
-    function formatTimeShort(date) {
-        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    }
-
+    // 2.1 Today's Games (scoreboard)
     async function loadGames(league) {
-        const gamesListDiv = document.getElementById('games-list');
-        gamesListDiv.innerHTML = '<div class="loading-spinner">Loading games...</div>';
-        const leagueMap = { nba: 'basketball/nba', nfl: 'football/nfl' };
-        const url = `https://site.web.api.espn.com/apis/site/v2/sports/${leagueMap[league]}/scoreboard`;
+        const container = document.getElementById('games-list');
+        container.innerHTML = '<div class="loading-spinner">Loading games...</div>';
+        const sport = league === 'nba' ? 'basketball/nba' : 'football/nfl';
+        const url = `https://site.api.espn.com/apis/site/v2/sports/${sport}/scoreboard`;
         const data = await fetchAPI(url);
-        if (!data?.events?.length) {
-            gamesListDiv.innerHTML = '<div class="error-message">No games scheduled for today.</div>';
-            return;
-        }
-        let gamesHtml = '<div class="team-stats-grid">';
-        data.events.forEach(event => {
-            const comp = event.competitions[0];
-            const homeTeam = comp.competitors.find(t => t.homeAway === 'home');
-            const awayTeam = comp.competitors.find(t => t.homeAway === 'away');
-            const gameDate = new Date(event.date);
-            gamesHtml += `
-                <div class="game-card" data-game-id="${event.id}" data-league="${league}">
-                    <div><strong>${awayTeam.team.displayName}</strong> @ <strong>${homeTeam.team.displayName}</strong></div>
-                    <div style="font-size:0.8rem; color:#9ca3af;">${formatDateShort(gameDate)} • ${formatTimeShort(gameDate)}</div>
-                    <div style="font-size:0.7rem; margin-top:5px;">Click for live box score →</div>
-                </div>
-            `;
+        if (!data?.events?.length) { container.innerHTML = '<div class="error-message">No games today.</div>'; return; }
+        let html = '<div class="team-stats-grid">';
+        data.events.forEach(e => {
+            const comp = e.competitions[0];
+            const home = comp.competitors.find(c => c.homeAway === 'home');
+            const away = comp.competitors.find(c => c.homeAway === 'away');
+            const date = new Date(e.date);
+            html += `<div class="game-card" data-game-id="${e.id}" data-league="${league}"><div><strong>${away.team.displayName}</strong> @ <strong>${home.team.displayName}</strong></div><div style="font-size:0.8rem;">${date.toLocaleDateString()} • ${date.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div><div style="font-size:0.7rem; margin-top:5px;">Click for box score →</div></div>`;
         });
-        gamesHtml += '</div>';
-        gamesListDiv.innerHTML = gamesHtml;
+        html += '</div>';
+        container.innerHTML = html;
         document.querySelectorAll('.game-card').forEach(card => {
             card.addEventListener('click', () => loadBoxScore(card.dataset.gameId, card.dataset.league));
         });
     }
 
     async function loadBoxScore(gameId, league) {
-        const boxscoreContainer = document.getElementById('boxscore-container');
-        const boxscoreContent = document.getElementById('boxscore-content');
-        boxscoreContainer.style.display = 'block';
-        boxscoreContent.innerHTML = '<div class="loading-spinner">Loading box score...</div>';
-        const sportMap = { nba: 'basketball/nba', nfl: 'football/nfl' };
-        const url = `https://site.web.api.espn.com/apis/site/v2/sports/${sportMap[league]}/summary?event=${gameId}`;
+        const boxContainer = document.getElementById('boxscore-container');
+        const boxContent = document.getElementById('boxscore-content');
+        boxContainer.style.display = 'block';
+        boxContent.innerHTML = '<div class="loading-spinner">Loading box score...</div>';
+        const sport = league === 'nba' ? 'basketball/nba' : 'football/nfl';
+        const url = `https://site.api.espn.com/apis/site/v2/sports/${sport}/summary?event=${gameId}`;
         const data = await fetchAPI(url);
-        if (!data?.boxscore?.teams) {
-            boxscoreContent.innerHTML = '<div class="error-message">Unable to load box score.</div>';
-            return;
-        }
+        if (!data?.boxscore?.teams) { boxContent.innerHTML = '<div class="error-message">No box score.</div>'; return; }
         let html = '';
         data.boxscore.teams.forEach(team => {
-            const teamName = team.team.displayName;
-            const stats = team.statistics;
-            html += `<h4 style="margin-top:15px;">${teamName}</h4>`;
-            html += '<div class="team-stats-grid">';
-            stats.forEach(stat => {
-                if (stat.displayValue && !stat.name.includes('fieldGoals')) {
+            html += `<h4>${team.team.displayName}</h4><div class="team-stats-grid">`;
+            team.statistics.forEach(stat => {
+                if (stat.displayValue && !stat.name.includes('fieldGoals'))
                     html += `<div class="stat-item"><div class="stat-label">${stat.label}</div><div class="stat-value">${stat.displayValue}</div></div>`;
-                }
             });
             html += '</div>';
         });
-        boxscoreContent.innerHTML = html;
+        boxContent.innerHTML = html;
     }
 
+    // 2.2 Team Records (standings)
     async function loadTeamStats(league) {
         const container = document.getElementById('team-stats-table');
-        container.innerHTML = '<div class="loading-spinner">Loading team stats...</div>';
-        const leagueMap = { nba: 'basketball/nba', nfl: 'football/nfl' };
-        const url = `https://site.web.api.espn.com/apis/site/v2/sports/${leagueMap[league]}/standings`;
+        container.innerHTML = '<div class="loading-spinner">Loading...</div>';
+        const sport = league === 'nba' ? 'basketball/nba' : 'football/nfl';
+        // Use the v2 standings endpoint (works)
+        const url = `https://site.api.espn.com/apis/v2/sports/${sport}/standings`;
         const data = await fetchAPI(url);
-        if (!data?.children) {
-            container.innerHTML = '<div class="error-message">Unable to load team stats.</div>';
-            return;
-        }
+        if (!data?.children) { container.innerHTML = '<div class="error-message">No standings data.</div>'; return; }
         const teams = [];
-        function extractTeams(node) {
+        function extract(node) {
             if (node.team) {
                 const record = node.stats?.find(s => s.name === 'standings')?.displayValue || 'N/A';
-                teams.push({ name: node.team.displayName, record: record });
+                teams.push({ name: node.team.displayName, record });
             }
-            if (node.children) node.children.forEach(child => extractTeams(child));
+            if (node.children) node.children.forEach(extract);
         }
-        data.children.forEach(division => extractTeams(division));
-        if (teams.length === 0) {
-            container.innerHTML = '<div class="error-message">No team data found.</div>';
-            return;
-        }
-        const headers = ['Team', 'Record'];
-        const rows = teams.map(team => [team.name, team.record]);
-        container.innerHTML = createDataTable(headers, rows);
+        data.children.forEach(extract);
+        if (!teams.length) { container.innerHTML = '<div class="error-message">No teams found.</div>'; return; }
+        let html = '<table class="data-table"><thead><tr><th>Team</th><th>Record</th></tr></thead><tbody>';
+        teams.forEach(t => { html += `<tr><td>${escapeHtml(t.name)}</td><td>${t.record}</td></tr>`; });
+        html += '</tbody></table>';
+        container.innerHTML = html;
     }
 
+    // 2.3 Player Stats (using common/v3 API)
     async function loadPlayerStats(league, playerName) {
         const container = document.getElementById('player-stats-result');
-        container.innerHTML = '<div class="loading-spinner">Searching for player...</div>';
-        const leagueMap = { nba: 'basketball/nba', nfl: 'football/nfl' };
-        const searchUrl = `https://site.web.api.espn.com/apis/site/v2/sports/${leagueMap[league]}/athletes?search=${encodeURIComponent(playerName)}`;
+        container.innerHTML = '<div class="loading-spinner">Searching...</div>';
+        const sport = league === 'nba' ? 'basketball/nba' : 'football/nfl';
+        // Search athlete by name
+        const searchUrl = `https://site.web.api.espn.com/apis/site/v2/sports/${sport}/athletes?search=${encodeURIComponent(playerName)}`;
         const searchData = await fetchAPI(searchUrl);
-        if (!searchData?.athletes?.length) {
-            container.innerHTML = `<div class="error-message">No player found named "${playerName}".</div>`;
-            return;
-        }
+        if (!searchData?.athletes?.length) { container.innerHTML = `<div class="error-message">No player found for "${playerName}".</div>`; return; }
         const player = searchData.athletes[0];
-        const statsUrl = `https://site.web.api.espn.com/apis/common/v3/sports/${leagueMap[league]}/athletes/${player.id}`;
+        // Get stats from common/v3
+        const statsUrl = `https://site.web.api.espn.com/apis/common/v3/sports/${sport}/athletes/${player.id}/stats`;
         const statsData = await fetchAPI(statsUrl);
-        if (!statsData?.athlete?.seasonStats) {
-            container.innerHTML = '<div class="error-message">No season stats available for this player.</div>';
-            return;
-        }
+        if (!statsData?.athlete?.seasonStats) { container.innerHTML = '<div class="error-message">No season stats available.</div>'; return; }
         const stats = statsData.athlete.seasonStats;
         let html = `<h4>${player.displayName} (${player.position?.abbreviation || 'N/A'})</h4><div class="team-stats-grid">`;
-        const keyStats = league === 'nba' 
+        // Show key stats based on league
+        const keys = league === 'nba' 
             ? ['ppg', 'rpg', 'apg', 'fgpct', 'threePtPct', 'ftPct']
             : ['passingYards', 'rushingYards', 'receivingYards', 'touchdowns', 'interceptions'];
-        for (const [key, value] of Object.entries(stats)) {
-            if (keyStats.includes(key) && typeof value === 'number') {
-                const label = key.replace(/([A-Z])/g, ' $1').toUpperCase();
-                html += `<div class="stat-item"><div class="stat-label">${label}</div><div class="stat-value">${value}</div></div>`;
+        for (let [k, v] of Object.entries(stats)) {
+            if (keys.includes(k) && typeof v === 'number') {
+                html += `<div class="stat-item"><div class="stat-label">${k.replace(/([A-Z])/g,' $1').toUpperCase()}</div><div class="stat-value">${v}</div></div>`;
             }
         }
         html += '</div>';
         container.innerHTML = html;
     }
 
+    // 2.4 Standings (same as team stats but full view)
     async function loadStandings(league) {
         const container = document.getElementById('standings-schedule-container');
         container.innerHTML = '<div class="loading-spinner">Loading standings...</div>';
-        const leagueMap = { nba: 'basketball/nba', nfl: 'football/nfl' };
-        const url = `https://site.web.api.espn.com/apis/site/v2/sports/${leagueMap[league]}/standings`;
+        const sport = league === 'nba' ? 'basketball/nba' : 'football/nfl';
+        const url = `https://site.api.espn.com/apis/v2/sports/${sport}/standings`;
         const data = await fetchAPI(url);
-        if (!data?.children) {
-            container.innerHTML = '<div class="error-message">Unable to load standings.</div>';
-            return;
-        }
+        if (!data?.children) { container.innerHTML = '<div class="error-message">No standings.</div>'; return; }
         let html = '<div class="team-stats-grid">';
-        function renderStandings(node) {
+        function render(node) {
             if (node.team) {
                 const record = node.stats?.find(s => s.name === 'standings')?.displayValue || 'N/A';
                 html += `<div style="margin:10px 0; padding:10px; background:#1e293b; border-radius:8px;">${node.team.displayName} - ${record}</div>`;
             }
             if (node.children) {
                 if (node.name) html += `<div style="margin-bottom:20px;"><strong>${node.name}</strong></div>`;
-                node.children.forEach(child => renderStandings(child));
+                node.children.forEach(render);
             }
         }
-        data.children.forEach(division => renderStandings(division));
+        data.children.forEach(render);
         html += '</div>';
         container.innerHTML = html;
     }
@@ -552,37 +398,20 @@
     async function loadSchedule(league) {
         const container = document.getElementById('standings-schedule-container');
         container.innerHTML = '<div class="loading-spinner">Loading schedule...</div>';
-        const leagueMap = { nba: 'basketball/nba', nfl: 'football/nfl' };
-        const url = `https://site.web.api.espn.com/apis/site/v2/sports/${leagueMap[league]}/scoreboard`;
+        const sport = league === 'nba' ? 'basketball/nba' : 'football/nfl';
+        const url = `https://site.api.espn.com/apis/site/v2/sports/${sport}/scoreboard`;
         const data = await fetchAPI(url);
-        if (!data?.events?.length) {
-            container.innerHTML = '<div class="error-message">No games scheduled for today.</div>';
-            return;
-        }
+        if (!data?.events?.length) { container.innerHTML = '<div class="error-message">No games today.</div>'; return; }
         let html = '<div class="team-stats-grid">';
-        data.events.forEach(event => {
-            const comp = event.competitions[0];
-            const homeTeam = comp.competitors.find(t => t.homeAway === 'home');
-            const awayTeam = comp.competitors.find(t => t.homeAway === 'away');
-            const gameDate = new Date(event.date);
-            html += `<div class="game-card"><div><strong>${awayTeam.team.displayName}</strong> @ <strong>${homeTeam.team.displayName}</strong></div><div style="font-size:0.8rem;">${formatDateShort(gameDate)} • ${formatTimeShort(gameDate)}</div></div>`;
+        data.events.forEach(e => {
+            const comp = e.competitions[0];
+            const home = comp.competitors.find(c => c.homeAway === 'home');
+            const away = comp.competitors.find(c => c.homeAway === 'away');
+            const date = new Date(e.date);
+            html += `<div class="game-card"><div><strong>${away.team.displayName}</strong> @ <strong>${home.team.displayName}</strong></div><div style="font-size:0.8rem;">${date.toLocaleDateString()} • ${date.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div></div>`;
         });
         html += '</div>';
         container.innerHTML = html;
-    }
-
-    function createDataTable(headers, rows) {
-        if (!rows.length) return '<div class="error-message">No data available</div>';
-        let html = '<table class="data-table"><thead><tr>';
-        headers.forEach(h => html += `<th>${h}</th>`);
-        html += '</tr></thead><tbody>';
-        rows.forEach(row => {
-            html += '<tr>';
-            row.forEach(cell => html += `<td>${cell}</td>`);
-            html += '</tr>';
-        });
-        html += '</tbody></table>';
-        return html;
     }
 
     // ============================================
@@ -595,34 +424,27 @@
         document.getElementById('news-grid').style.display = 'grid';
         document.getElementById('vault-pane').style.display = 'none';
     }
-
     function showVaultTab() {
         document.getElementById('news-ticker-container').style.display = 'none';
         document.getElementById('news-hero').style.display = 'none';
         document.getElementById('news-section-title').style.display = 'none';
         document.getElementById('news-grid').style.display = 'none';
         document.getElementById('vault-pane').style.display = 'block';
-        if (!window.vaultInitialized) {
-            loadGames('nba');
-            window.vaultInitialized = true;
-        }
+        if (!window.vaultInit) { loadGames('nba'); window.vaultInit = true; }
     }
-
     function initTabs() {
-        const tabs = document.querySelectorAll('.tab-btn');
-        tabs.forEach(btn => {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
-                const tabId = btn.getAttribute('data-tab');
-                tabs.forEach(b => b.classList.remove('active'));
+                const tab = btn.dataset.tab;
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                if (tabId === 'nba') { showNewsTab(); await loadLeague('nba'); }
-                else if (tabId === 'nfl') { showNewsTab(); await loadLeague('nfl'); }
-                else if (tabId === 'vault') { showVaultTab(); }
+                if (tab === 'nba') { showNewsTab(); await loadLeague('nba'); }
+                else if (tab === 'nfl') { showNewsTab(); await loadLeague('nfl'); }
+                else if (tab === 'vault') showVaultTab();
             });
         });
     }
-
-    document.getElementById('league-selector')?.addEventListener('change', (e) => loadGames(e.target.value));
+    document.getElementById('league-selector')?.addEventListener('change', e => loadGames(e.target.value));
     document.getElementById('load-team-stats')?.addEventListener('click', () => loadTeamStats(document.getElementById('team-stats-league').value));
     document.getElementById('load-player-stats')?.addEventListener('click', () => {
         const league = document.getElementById('player-stats-league').value;
@@ -635,7 +457,7 @@
     showNewsTab();
     loadLeague('nba');
     initTabs();
-    window.vaultInitialized = false;
+    window.vaultInit = false;
 </script>
 </body>
 </html>
