@@ -3,173 +3,358 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NBA & NFL Breaking News Hub</title>
+    <title>The Scoop | NBA & NFL Breaking News Hub</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: #f4f6f9;
-            color: #1a1e2b;
-            padding: 20px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #0a0c10;
+            color: #eef2ff;
+            line-height: 1.5;
         }
+
         .container {
-            max-width: 1300px;
+            max-width: 1400px;
             margin: 0 auto;
+            padding: 20px 30px;
         }
-        h1 {
-            font-size: 2rem;
-            margin-bottom: 0.25rem;
+
+        /* Header & Navigation */
+        .site-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #1f2937;
+        }
+
+        .logo h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, #3b82f6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .logo p {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 15px;
+            background: #111827;
+            padding: 6px;
+            border-radius: 60px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 10px 28px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #9ca3af;
+        }
+
+        .tab-btn.active {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+        }
+
+        /* Breaking News Ticker */
+        .ticker-container {
+            background: #111827;
+            border-radius: 16px;
+            margin-bottom: 40px;
+            padding: 0 20px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            border-left: 5px solid #ef4444;
         }
-        .sub {
-            color: #5a6874;
-            margin-bottom: 1.5rem;
-            border-left: 4px solid #2e7d64;
-            padding-left: 12px;
+
+        .ticker-label {
+            background: #ef4444;
+            color: white;
+            font-weight: 800;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            margin-right: 20px;
         }
-        /* Tabs */
-        .tabs {
+
+        .ticker-content {
+            flex: 1;
+            overflow: hidden;
+            white-space: nowrap;
+            padding: 14px 0;
+        }
+
+        .ticker-scroll {
+            display: inline-block;
+            white-space: nowrap;
+            animation: scrollTicker 35s linear infinite;
+        }
+
+        .ticker-scroll a {
+            color: #e2e8f0;
+            text-decoration: none;
+            margin-right: 40px;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .ticker-scroll a:hover {
+            color: #3b82f6;
+            text-decoration: underline;
+        }
+
+        @keyframes scrollTicker {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Hero Section */
+        .hero {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .hero-main {
+            background: #111827;
+            border-radius: 28px;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+
+        .hero-main:hover {
+            transform: translateY(-5px);
+        }
+
+        .hero-img {
+            background: #1e293b;
+            height: 280px;
             display: flex;
-            gap: 8px;
-            border-bottom: 2px solid #ddd;
-            margin-bottom: 24px;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
         }
-        .tab-btn {
-            background: none;
-            border: none;
-            font-size: 1.25rem;
+
+        .hero-text {
+            padding: 25px;
+        }
+
+        .hero-category {
+            color: #3b82f6;
             font-weight: 600;
-            padding: 10px 20px;
-            cursor: pointer;
-            border-radius: 30px 30px 0 0;
-            transition: 0.2s;
-            color: #4a5568;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            margin-bottom: 10px;
         }
-        .tab-btn.active {
-            background: white;
-            color: #2e7d64;
-            border-bottom: 3px solid #2e7d64;
+
+        .hero-text h2 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            line-height: 1.2;
         }
-        .tab-pane {
-            display: none;
+
+        .hero-text a {
+            color: white;
+            text-decoration: none;
         }
-        .tab-pane.active-pane {
-            display: block;
+
+        .hero-text a:hover {
+            text-decoration: underline;
         }
-        /* News grid */
+
+        .hero-side {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .side-card {
+            background: #111827;
+            border-radius: 24px;
+            padding: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .side-icon {
+            font-size: 2.5rem;
+        }
+
+        .side-content h4 {
+            font-size: 1rem;
+            margin-bottom: 5px;
+        }
+
+        .side-content p {
+            color: #9ca3af;
+            font-size: 0.8rem;
+        }
+
+        /* News Grid */
+        .section-title {
+            font-size: 1.5rem;
+            margin: 40px 0 20px 0;
+            padding-left: 12px;
+            border-left: 4px solid #3b82f6;
+        }
+
         .news-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 20px;
+            gap: 25px;
         }
+
         .news-card {
-            background: white;
+            background: #111827;
             border-radius: 20px;
-            padding: 18px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            transition: 0.2s ease;
-            border-left: 4px solid #2e7d64;
-            display: flex;
-            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            border: 1px solid #1f2937;
         }
+
         .news-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 20px rgba(0,0,0,0.1);
+            transform: translateY(-4px);
+            border-color: #3b82f6;
+            box-shadow: 0 20px 25px -12px rgba(0,0,0,0.5);
         }
+
+        .card-content {
+            padding: 20px;
+        }
+
         .news-title {
             font-size: 1.1rem;
-            font-weight: 700;
-            margin-bottom: 10px;
+            font-weight: 600;
+            margin-bottom: 12px;
             line-height: 1.4;
         }
+
         .news-title a {
             text-decoration: none;
-            color: #1a2c3e;
+            color: #f3f4f6;
         }
+
         .news-title a:hover {
-            color: #2e7d64;
-            text-decoration: underline;
+            color: #60a5fa;
         }
+
         .news-meta {
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
             font-size: 0.75rem;
-            color: #6c7a89;
-            margin-top: 12px;
-            border-top: 1px solid #edf2f7;
-            padding-top: 10px;
+            color: #6b7280;
         }
+
         .source {
-            font-weight: 600;
-            background: #edf2f7;
-            padding: 2px 8px;
-            border-radius: 20px;
+            background: #1e293b;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-weight: 500;
         }
-        .date {
-            font-family: monospace;
+
+        .source-breaking {
+            background: #ef4444;
+            color: white;
         }
-        .loading {
+
+        .loading, .error {
             text-align: center;
             padding: 60px;
-            color: #5a6874;
+            background: #111827;
+            border-radius: 24px;
         }
-        .error {
-            background: #ffe6e6;
-            color: #b91c1c;
-            padding: 12px;
-            border-radius: 16px;
-            margin: 20px 0;
-        }
+
         footer {
-            margin-top: 50px;
+            margin-top: 60px;
             text-align: center;
             font-size: 0.75rem;
-            color: #7e8c9a;
-            border-top: 1px solid #e2e8f0;
-            padding-top: 20px;
+            color: #4b5563;
+            border-top: 1px solid #1f2937;
+            padding-top: 30px;
         }
-        @media (max-width: 700px) {
-            .news-grid {
+
+        @media (max-width: 900px) {
+            .hero {
                 grid-template-columns: 1fr;
             }
-            .tab-btn {
-                font-size: 1rem;
-                padding: 8px 16px;
+            .container {
+                padding: 15px;
             }
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>🏀🏈 Breaking News Hub</h1>
-    <div class="sub">Real‑time NBA & NFL headlines • free • no paywall</div>
-
-    <div class="tabs">
-        <button class="tab-btn active" data-tab="nba">🏀 NBA</button>
-        <button class="tab-btn" data-tab="nfl">🏈 NFL</button>
+    <div class="site-header">
+        <div class="logo">
+            <h1>🏈🏀 THE SCOOP</h1>
+            <p>NBA • NFL • Breaking News</p>
+        </div>
+        <div class="nav-tabs">
+            <button class="tab-btn active" data-tab="nba">🏀 NBA</button>
+            <button class="tab-btn" data-tab="nfl">🏈 NFL</button>
+        </div>
     </div>
 
+    <!-- Breaking News Ticker -->
+    <div class="ticker-container" id="tickerContainer">
+        <div class="ticker-label">⚡ BREAKING</div>
+        <div class="ticker-content">
+            <div class="ticker-scroll" id="tickerList">
+                Loading latest updates...
+            </div>
+        </div>
+    </div>
+
+    <!-- Hero Section (populated by JS) -->
+    <div class="hero" id="heroSection"></div>
+
+    <!-- Main News Sections -->
     <div id="nba-pane" class="tab-pane active-pane">
+        <div class="section-title">🏀 Latest from the Association</div>
         <div class="news-grid" id="nba-news">Loading NBA news...</div>
     </div>
     <div id="nfl-pane" class="tab-pane">
+        <div class="section-title">🏈 Around the League</div>
         <div class="news-grid" id="nfl-news">Loading NFL news...</div>
     </div>
+
     <footer>
-        Sources: ESPN, Bleacher Report, Yahoo Sports, RealGM, CBS Sports, SI, NFL.com.<br>
-        Updates every 15 minutes (refresh page). Built with free RSS → JSON.
+        Sources: ESPN, Bleacher Report, Yahoo Sports, RealGM, CBS Sports, SI, NFL.com + 🔥 Shams Charania Breaking News (via RSS.app).<br>
+        Data updates in real-time. Refresh page for latest.
     </footer>
 </div>
 
 <script>
-    // ---------- FREE RSS FEEDS (NBA) ----------
+    // ---------- RSS FEEDS ----------
+    // NBA Feeds including Shams Charania via RSS.app
     const nbaFeeds = [
+        { name: "🔥 Shams Breaking News", url: "https://rss.app/feeds/KSP50yB3sPn7wSyp.xml", isBreaking: true },
         { name: "ESPN NBA", url: "https://www.espn.com/espn/rss/nba/news" },
         { name: "Bleacher Report NBA", url: "https://bleacherreport.com/nba/feed" },
         { name: "Yahoo Sports NBA", url: "https://sports.yahoo.com/nba/rss/" },
@@ -187,20 +372,20 @@
         { name: "NFL.com", url: "https://www.nfl.com/rss/partner.xml" }
     ];
 
-    // Better CORS proxy that returns JSON directly
+    // Free CORS proxy that returns JSON
     const PROXY = "https://api.rss2json.com/v1/api.json?rss_url=";
 
-    async function fetchRssFeed(feedUrl, sourceName) {
+    async function fetchRssFeed(feedUrl, sourceName, isBreaking = false) {
         try {
             const response = await fetch(`${PROXY}${encodeURIComponent(feedUrl)}`);
             const data = await response.json();
             if (data.status !== "ok" || !data.items) return [];
-            
             return data.items.map(item => ({
                 title: item.title || "No title",
                 link: item.link || "#",
                 pubDate: new Date(item.pubDate),
                 source: sourceName,
+                isBreaking: isBreaking,
                 description: item.description?.replace(/<[^>]*>/g, '').substring(0, 120) || ""
             }));
         } catch (err) {
@@ -210,7 +395,7 @@
     }
 
     async function fetchAllFeeds(feedsArray) {
-        const promises = feedsArray.map(feed => fetchRssFeed(feed.url, feed.name));
+        const promises = feedsArray.map(feed => fetchRssFeed(feed.url, feed.name, feed.isBreaking || false));
         const results = await Promise.allSettled(promises);
         let allArticles = [];
         for (let res of results) {
@@ -218,29 +403,79 @@
                 allArticles = allArticles.concat(res.value);
             }
         }
+        // Sort by newest first (breaking at top)
         allArticles.sort((a, b) => b.pubDate - a.pubDate);
         return allArticles;
     }
 
+    // Render main news grid
     function renderNews(articles, containerId) {
         const container = document.getElementById(containerId);
         if (!container) return;
         if (!articles.length) {
-            container.innerHTML = '<div class="error">⚠️ No articles loaded. Some feeds may be temporarily unavailable. Refresh later.</div>';
+            container.innerHTML = '<div class="error">⚠️ No articles loaded. Refresh later.</div>';
             return;
         }
         const html = articles.map(article => `
             <div class="news-card">
-                <div class="news-title">
-                    <a href="${article.link}" target="_blank" rel="noopener noreferrer">${escapeHtml(article.title)}</a>
-                </div>
-                <div class="news-meta">
-                    <span class="source">${escapeHtml(article.source)}</span>
-                    <span class="date">${formatDate(article.pubDate)}</span>
+                <div class="card-content">
+                    <div class="news-title">
+                        <a href="${article.link}" target="_blank" rel="noopener noreferrer">${escapeHtml(article.title)}</a>
+                    </div>
+                    <div class="news-meta">
+                        <span class="source ${article.isBreaking ? 'source-breaking' : ''}">${escapeHtml(article.source)}</span>
+                        <span>${formatDate(article.pubDate)}</span>
+                    </div>
                 </div>
             </div>
         `).join('');
         container.innerHTML = html;
+    }
+
+    // Render Hero (top 3 stories)
+    function renderHero(articles) {
+        const heroDiv = document.getElementById('heroSection');
+        if (!heroDiv || articles.length === 0) return;
+        const top3 = articles.slice(0, 3);
+        const mainStory = top3[0];
+        const sideStories = top3.slice(1);
+        const heroHtml = `
+            <div class="hero-main">
+                <div class="hero-img">🏀🏈</div>
+                <div class="hero-text">
+                    <div class="hero-category">${escapeHtml(mainStory.source)}</div>
+                    <h2><a href="${mainStory.link}" target="_blank">${escapeHtml(mainStory.title)}</a></h2>
+                </div>
+            </div>
+            <div class="hero-side">
+                ${sideStories.map(story => `
+                    <div class="side-card">
+                        <div class="side-icon">📰</div>
+                        <div class="side-content">
+                            <h4><a href="${story.link}" target="_blank" style="color:white; text-decoration:none;">${escapeHtml(story.title)}</a></h4>
+                            <p>${escapeHtml(story.source)} • ${formatDate(story.pubDate)}</p>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        heroDiv.innerHTML = heroHtml;
+    }
+
+    // Render Breaking News Ticker
+    function renderTicker(articles) {
+        const tickerDiv = document.getElementById('tickerList');
+        if (!tickerDiv || !articles.length) return;
+        // Prioritize isBreaking flag or title contains "breaking"
+        const breakingItems = articles.filter(a => a.isBreaking || a.title.toLowerCase().includes('breaking')).slice(0, 15);
+        if (breakingItems.length === 0) {
+            tickerDiv.innerHTML = '<span>No breaking news at the moment.</span>';
+            return;
+        }
+        // Double items for seamless loop
+        const items = [...breakingItems, ...breakingItems];
+        const html = items.map(item => `<a href="${item.link}" target="_blank">⚡ ${escapeHtml(item.title)}</a>`).join('');
+        tickerDiv.innerHTML = html;
     }
 
     function escapeHtml(str) {
@@ -264,24 +499,25 @@
         return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     }
 
-    function setLoading(league) {
-        const containerId = league === 'nba' ? 'nba-news' : 'nfl-news';
-        const container = document.getElementById(containerId);
-        if (container) container.innerHTML = '<div class="loading">📡 Fetching latest headlines...</div>';
-    }
-
     async function loadNBA() {
-        setLoading('nba');
+        const container = document.getElementById('nba-news');
+        if (container) container.innerHTML = '<div class="loading">📡 Loading latest headlines...</div>';
         const articles = await fetchAllFeeds(nbaFeeds);
         renderNews(articles, 'nba-news');
+        renderHero(articles);
+        renderTicker(articles);
     }
 
     async function loadNFL() {
-        setLoading('nfl');
+        const container = document.getElementById('nfl-news');
+        if (container) container.innerHTML = '<div class="loading">📡 Loading latest headlines...</div>';
         const articles = await fetchAllFeeds(nflFeeds);
         renderNews(articles, 'nfl-news');
+        renderHero(articles);
+        renderTicker(articles);
     }
 
+    // Tab Switching
     function initTabs() {
         const tabs = document.querySelectorAll('.tab-btn');
         tabs.forEach(btn => {
@@ -305,7 +541,7 @@
 
     window.nbaLoaded = false;
     window.nflLoaded = false;
-    loadNBA();
+    loadNBA();  // Load NBA by default
     window.nbaLoaded = true;
     initTabs();
 </script>
