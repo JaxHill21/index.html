@@ -253,7 +253,6 @@
             background-position: center;
         }
 
-        /* Hide image area if no image */
         .card-img.no-image {
             display: none;
         }
@@ -333,8 +332,8 @@
             <p>NBA · NFL · Breaking News</p>
         </div>
         <div class="nav-tabs">
-            <button class="tab-btn active" data-tab="nba">NBA</button>
-            <button class="tab-btn" data-tab="nfl">NFL</button>
+            <button class="tab-btn active" data-league="nba">NBA</button>
+            <button class="tab-btn" data-league="nfl">NFL</button>
         </div>
     </div>
 
@@ -347,14 +346,8 @@
 
     <div class="hero" id="heroSection"></div>
 
-    <div id="nba-pane" class="tab-pane active-pane">
-        <div class="section-title" id="sectionTitle">Latest from the Association</div>
-        <div class="news-grid" id="nba-news">Loading NBA news...</div>
-    </div>
-    <div id="nfl-pane" class="tab-pane">
-        <div class="section-title" id="sectionTitleNFL">Around the League</div>
-        <div class="news-grid" id="nfl-news">Loading NFL news...</div>
-    </div>
+    <div class="section-title" id="sectionTitle">Latest from the Association</div>
+    <div class="news-grid" id="newsGrid">Loading news...</div>
 
     <footer>
         Sources: ESPN, Bleacher Report, Yahoo Sports, RealGM, CBS Sports, SI, NFL.com +
@@ -387,7 +380,6 @@
 
     const PROXY = "https://api.rss2json.com/v1/api.json?rss_url=";
 
-    // Helper: extract image from RSS item (only if exists)
     function getImageFromItem(item) {
         if (item.enclosure && item.enclosure.link) return item.enclosure.link;
         if (item.thumbnail) return item.thumbnail;
@@ -395,7 +387,6 @@
         return null;
     }
 
-    // Fetch one RSS feed
     async function fetchRssFeed(feedUrl, sourceName, isBreaking = false) {
         try {
             const response = await fetch(`${PROXY}${encodeURIComponent(feedUrl)}`);
@@ -403,7 +394,7 @@
             if (data.status !== "ok" || !data.items) return [];
             return data.items.map(item => {
                 let pubDate = new Date(item.pubDate);
-                if (isNaN(pubDate.getTime())) pubDate = new Date(); // fallback to now
+                if (isNaN(pubDate.getTime())) pubDate = new Date();
                 return {
                     title: item.title || "No title",
                     link: item.link || "#",
@@ -419,7 +410,6 @@
         }
     }
 
-    // Fetch all feeds, deduplicate by exact title, sort chronologically
     async function fetchAllFeeds(feedsArray) {
         const promises = feedsArray.map(feed => fetchRssFeed(feed.url, feed.name, feed.isBreaking || false));
         const results = await Promise.allSettled(promises);
@@ -444,7 +434,6 @@
         return unique;
     }
 
-    // Render main news grid (no emojis, hide image if missing)
     function renderNews(articles, containerId) {
         const container = document.getElementById(containerId);
         if (!container) return;
@@ -472,10 +461,12 @@
         container.innerHTML = html;
     }
 
-    // Render hero section (only show images if available)
     function renderHero(articles) {
         const heroDiv = document.getElementById('heroSection');
-        if (!heroDiv || articles.length === 0) return;
+        if (!heroDiv || articles.length === 0) {
+            heroDiv.innerHTML = '';
+            return;
+        }
         const top3 = articles.slice(0, 3);
         const mainStory = top3[0];
         const sideStories = top3.slice(1);
@@ -505,7 +496,6 @@
         heroDiv.innerHTML = heroHtml;
     }
 
-    // Render breaking ticker (slower, pauses on hover)
     function renderTicker(articles) {
         const tickerDiv = document.getElementById('tickerList');
         if (!tickerDiv || !articles.length) return;
@@ -514,7 +504,6 @@
             tickerDiv.innerHTML = '<span>No breaking news at the moment.</span>';
             return;
         }
-        // Double for seamless loop
         const items = [...breakingItems, ...breakingItems];
         const html = items.map(item => `<a href="${item.link}" target="_blank">⚡ ${escapeHtml(item.title)}</a>`).join('');
         tickerDiv.innerHTML = html;
@@ -541,58 +530,39 @@
         return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     }
 
-    // Loading functions with explicit UI updates
-    async function loadNBA() {
-        // Update active pane visuals
-        document.getElementById('nba-pane').classList.add('active-pane');
-        document.getElementById('nfl-pane').classList.remove('active-pane');
-        document.querySelector('.tab-btn[data-tab="nba"]').classList.add('active');
-        document.querySelector('.tab-btn[data-tab="nfl"]').classList.remove('active');
+    // Core function to load a league
+    async function loadLeague(league) {
+        const feeds = league === 'nba' ? nbaFeeds : nflFeeds;
+        const sectionTitle = league === 'nba' ? 'Latest from the Association' : 'Around the League';
+        document.getElementById('sectionTitle').innerText = sectionTitle;
         
         // Show loading
-        const nbaGrid = document.getElementById('nba-news');
-        if (nbaGrid) nbaGrid.innerHTML = '<div class="loading">Loading NBA headlines...</div>';
+        const gridContainer = document.getElementById('newsGrid');
+        gridContainer.innerHTML = '<div class="loading">Loading headlines...</div>';
         
-        const articles = await fetchAllFeeds(nbaFeeds);
-        renderNews(articles, 'nba-news');
+        const articles = await fetchAllFeeds(feeds);
+        renderNews(articles, 'newsGrid');
         renderHero(articles);
         renderTicker(articles);
     }
 
-    async function loadNFL() {
-        // Update active pane visuals
-        document.getElementById('nfl-pane').classList.add('active-pane');
-        document.getElementById('nba-pane').classList.remove('active-pane');
-        document.querySelector('.tab-btn[data-tab="nfl"]').classList.add('active');
-        document.querySelector('.tab-btn[data-tab="nba"]').classList.remove('active');
-        
-        // Show loading
-        const nflGrid = document.getElementById('nfl-news');
-        if (nflGrid) nflGrid.innerHTML = '<div class="loading">Loading NFL headlines...</div>';
-        
-        const articles = await fetchAllFeeds(nflFeeds);
-        renderNews(articles, 'nfl-news');
-        renderHero(articles);
-        renderTicker(articles);
-    }
-
-    // Tab event binding
+    // Tab switching
     function initTabs() {
-        const nbaBtn = document.querySelector('.tab-btn[data-tab="nba"]');
-        const nflBtn = document.querySelector('.tab-btn[data-tab="nfl"]');
-        
-        nbaBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            loadNBA();
-        });
-        nflBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            loadNFL();
+        const tabs = document.querySelectorAll('.tab-btn');
+        tabs.forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const league = btn.getAttribute('data-league');
+                // Update active class on buttons
+                tabs.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                // Load the selected league
+                await loadLeague(league);
+            });
         });
     }
 
     // Start with NBA
-    loadNBA();
+    loadLeague('nba');
     initTabs();
 </script>
 </body>
