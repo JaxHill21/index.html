@@ -106,7 +106,7 @@
         .ticker-scroll {
             display: inline-block;
             white-space: nowrap;
-            animation: scrollTicker 90s linear infinite;
+            animation: scrollTicker 100s linear infinite;
         }
 
         .ticker-scroll:hover {
@@ -152,10 +152,6 @@
         .hero-img {
             background: #1e293b;
             height: 280px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3rem;
             background-size: cover;
             background-position: center;
         }
@@ -210,10 +206,6 @@
             background-size: cover;
             background-position: center;
             flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.8rem;
         }
 
         .side-content h4 {
@@ -259,10 +251,11 @@
             background: #1e293b;
             background-size: cover;
             background-position: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3rem;
+        }
+
+        /* Hide image area if no image */
+        .card-img.no-image {
+            display: none;
         }
 
         .card-content {
@@ -393,8 +386,8 @@
     ];
 
     const PROXY = "https://api.rss2json.com/v1/api.json?rss_url=";
-    const FALLBACK_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 13c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z'/%3E%3C/svg%3E";
 
+    // Helper: extract image from RSS item (only if exists)
     function getImageFromItem(item) {
         if (item.enclosure && item.enclosure.link) return item.enclosure.link;
         if (item.thumbnail) return item.thumbnail;
@@ -402,50 +395,31 @@
         return null;
     }
 
-    // Simple deduplication based on title similarity (case-insensitive, remove common words)
-    function normalizeTitle(title) {
-        return title.toLowerCase()
-            .replace(/[^\w\s]/g, '')
-            .replace(/\s+/g, ' ')
-            .trim();
-    }
-
-    function isDuplicate(newTitle, existingTitles, threshold = 0.7) {
-        const newNorm = normalizeTitle(newTitle);
-        for (let existing of existingTitles) {
-            const existingNorm = normalizeTitle(existing);
-            // Simple similarity: if one contains the other or they share long common substring
-            if (newNorm.includes(existingNorm) || existingNorm.includes(newNorm)) return true;
-            // Word-based overlap
-            const words1 = newNorm.split(' ');
-            const words2 = existingNorm.split(' ');
-            const common = words1.filter(w => words2.includes(w)).length;
-            const similarity = common / Math.max(words1.length, words2.length);
-            if (similarity > threshold) return true;
-        }
-        return false;
-    }
-
+    // Fetch one RSS feed
     async function fetchRssFeed(feedUrl, sourceName, isBreaking = false) {
         try {
             const response = await fetch(`${PROXY}${encodeURIComponent(feedUrl)}`);
             const data = await response.json();
             if (data.status !== "ok" || !data.items) return [];
-            return data.items.map(item => ({
-                title: item.title || "No title",
-                link: item.link || "#",
-                pubDate: new Date(item.pubDate),
-                source: sourceName,
-                isBreaking: isBreaking,
-                image: getImageFromItem(item),
-                description: item.description?.replace(/<[^>]*>/g, '').substring(0, 120) || ""
-            }));
+            return data.items.map(item => {
+                let pubDate = new Date(item.pubDate);
+                if (isNaN(pubDate.getTime())) pubDate = new Date(); // fallback to now
+                return {
+                    title: item.title || "No title",
+                    link: item.link || "#",
+                    pubDate: pubDate,
+                    source: sourceName,
+                    isBreaking: isBreaking,
+                    image: getImageFromItem(item)
+                };
+            });
         } catch (err) {
             console.warn(`Error fetching ${sourceName}:`, err);
             return [];
         }
     }
 
+    // Fetch all feeds, deduplicate by exact title, sort chronologically
     async function fetchAllFeeds(feedsArray) {
         const promises = feedsArray.map(feed => fetchRssFeed(feed.url, feed.name, feed.isBreaking || false));
         const results = await Promise.allSettled(promises);
@@ -455,21 +429,22 @@
                 allArticles = allArticles.concat(res.value);
             }
         }
-        // Sort by newest first
-        allArticles.sort((a, b) => b.pubDate - a.pubDate);
-        
-        // Deduplicate based on title similarity
-        const uniqueArticles = [];
-        const usedTitles = [];
+        // Remove exact duplicate titles (case-insensitive)
+        const seen = new Set();
+        const unique = [];
         for (let article of allArticles) {
-            if (!isDuplicate(article.title, usedTitles, 0.65)) {
-                uniqueArticles.push(article);
-                usedTitles.push(article.title);
+            const lowerTitle = article.title.toLowerCase();
+            if (!seen.has(lowerTitle)) {
+                seen.add(lowerTitle);
+                unique.push(article);
             }
         }
-        return uniqueArticles;
+        // Sort newest first
+        unique.sort((a, b) => b.pubDate - a.pubDate);
+        return unique;
     }
 
+    // Render main news grid (no emojis, hide image if missing)
     function renderNews(articles, containerId) {
         const container = document.getElementById(containerId);
         if (!container) return;
@@ -478,14 +453,11 @@
             return;
         }
         const html = articles.map(article => {
-            const hasImage = article.image;
-            const imageStyle = hasImage ? `background-image: url(${article.image});` : '';
-            const imgContent = hasImage ? '' : '<span style="font-size: 3rem;">📰</span>';
+            const hasImage = article.image && article.image.trim() !== "";
+            const imageHtml = hasImage ? `<div class="card-img" style="background-image: url(${article.image});"></div>` : '';
             return `
             <div class="news-card">
-                <div class="card-img" style="${imageStyle} background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center;">
-                    ${imgContent}
-                </div>
+                ${imageHtml}
                 <div class="card-content">
                     <div class="news-title">
                         <a href="${article.link}" target="_blank" rel="noopener noreferrer">${escapeHtml(article.title)}</a>
@@ -500,20 +472,17 @@
         container.innerHTML = html;
     }
 
+    // Render hero section (only show images if available)
     function renderHero(articles) {
         const heroDiv = document.getElementById('heroSection');
         if (!heroDiv || articles.length === 0) return;
         const top3 = articles.slice(0, 3);
         const mainStory = top3[0];
         const sideStories = top3.slice(1);
-        const mainHasImage = mainStory.image;
-        const mainImageStyle = mainHasImage ? `background-image: url(${mainStory.image});` : '';
-        const mainImgContent = mainHasImage ? '' : '<span style="font-size: 4rem;">🏀🏈</span>';
+        const mainImageStyle = mainStory.image ? `background-image: url(${mainStory.image});` : 'background-color: #1e293b;';
         const heroHtml = `
             <div class="hero-main">
-                <div class="hero-img" style="${mainImageStyle} background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center;">
-                    ${mainImgContent}
-                </div>
+                <div class="hero-img" style="${mainImageStyle}"></div>
                 <div class="hero-text">
                     <div class="hero-category">${escapeHtml(mainStory.source)}</div>
                     <h2><a href="${mainStory.link}" target="_blank">${escapeHtml(mainStory.title)}</a></h2>
@@ -521,14 +490,10 @@
             </div>
             <div class="hero-side">
                 ${sideStories.map(story => {
-                    const sideHasImage = story.image;
-                    const sideImageStyle = sideHasImage ? `background-image: url(${story.image});` : '';
-                    const sideImgContent = sideHasImage ? '' : '<span style="font-size: 1.8rem;">📰</span>';
+                    const sideImageStyle = story.image ? `background-image: url(${story.image});` : 'background-color: #1e293b;';
                     return `
                     <div class="side-card">
-                        <div class="side-img" style="${sideImageStyle} background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center;">
-                            ${sideImgContent}
-                        </div>
+                        <div class="side-img" style="${sideImageStyle}"></div>
                         <div class="side-content">
                             <h4><a href="${story.link}" target="_blank" style="color:white; text-decoration:none;">${escapeHtml(story.title)}</a></h4>
                             <p>${escapeHtml(story.source)} • ${formatDate(story.pubDate)}</p>
@@ -540,14 +505,16 @@
         heroDiv.innerHTML = heroHtml;
     }
 
+    // Render breaking ticker (slower, pauses on hover)
     function renderTicker(articles) {
         const tickerDiv = document.getElementById('tickerList');
         if (!tickerDiv || !articles.length) return;
-        const breakingItems = articles.filter(a => a.isBreaking || a.title.toLowerCase().includes('breaking')).slice(0, 15);
+        const breakingItems = articles.filter(a => a.isBreaking).slice(0, 15);
         if (breakingItems.length === 0) {
             tickerDiv.innerHTML = '<span>No breaking news at the moment.</span>';
             return;
         }
+        // Double for seamless loop
         const items = [...breakingItems, ...breakingItems];
         const html = items.map(item => `<a href="${item.link}" target="_blank">⚡ ${escapeHtml(item.title)}</a>`).join('');
         tickerDiv.innerHTML = html;
@@ -574,9 +541,18 @@
         return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     }
 
+    // Loading functions with explicit UI updates
     async function loadNBA() {
-        const container = document.getElementById('nba-news');
-        if (container) container.innerHTML = '<div class="loading">Loading latest headlines...</div>';
+        // Update active pane visuals
+        document.getElementById('nba-pane').classList.add('active-pane');
+        document.getElementById('nfl-pane').classList.remove('active-pane');
+        document.querySelector('.tab-btn[data-tab="nba"]').classList.add('active');
+        document.querySelector('.tab-btn[data-tab="nfl"]').classList.remove('active');
+        
+        // Show loading
+        const nbaGrid = document.getElementById('nba-news');
+        if (nbaGrid) nbaGrid.innerHTML = '<div class="loading">Loading NBA headlines...</div>';
+        
         const articles = await fetchAllFeeds(nbaFeeds);
         renderNews(articles, 'nba-news');
         renderHero(articles);
@@ -584,37 +560,39 @@
     }
 
     async function loadNFL() {
-        const container = document.getElementById('nfl-news');
-        if (container) container.innerHTML = '<div class="loading">Loading latest headlines...</div>';
+        // Update active pane visuals
+        document.getElementById('nfl-pane').classList.add('active-pane');
+        document.getElementById('nba-pane').classList.remove('active-pane');
+        document.querySelector('.tab-btn[data-tab="nfl"]').classList.add('active');
+        document.querySelector('.tab-btn[data-tab="nba"]').classList.remove('active');
+        
+        // Show loading
+        const nflGrid = document.getElementById('nfl-news');
+        if (nflGrid) nflGrid.innerHTML = '<div class="loading">Loading NFL headlines...</div>';
+        
         const articles = await fetchAllFeeds(nflFeeds);
         renderNews(articles, 'nfl-news');
         renderHero(articles);
         renderTicker(articles);
     }
 
+    // Tab event binding
     function initTabs() {
-        const tabs = document.querySelectorAll('.tab-btn');
-        tabs.forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const tabId = btn.getAttribute('data-tab');
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active-pane'));
-                document.getElementById(`${tabId}-pane`).classList.add('active-pane');
-                if (tabId === 'nba' && !window.nbaLoaded) {
-                    await loadNBA();
-                    window.nbaLoaded = true;
-                } else if (tabId === 'nfl' && !window.nflLoaded) {
-                    await loadNFL();
-                    window.nflLoaded = true;
-                }
-            });
+        const nbaBtn = document.querySelector('.tab-btn[data-tab="nba"]');
+        const nflBtn = document.querySelector('.tab-btn[data-tab="nfl"]');
+        
+        nbaBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            loadNBA();
+        });
+        nflBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            loadNFL();
         });
     }
 
-    window.nbaLoaded = false;
-    window.nflLoaded = false;
-    loadNBA().then(() => { window.nbaLoaded = true; });
+    // Start with NBA
+    loadNBA();
     initTabs();
 </script>
 </body>
