@@ -24,7 +24,6 @@
             padding: 20px 30px;
         }
 
-        /* Header & Navigation */
         .site-header {
             display: flex;
             justify-content: space-between;
@@ -76,7 +75,6 @@
             box-shadow: 0 4px 12px rgba(59,130,246,0.3);
         }
 
-        /* Breaking News Ticker - slower speed */
         .ticker-container {
             background: #111827;
             border-radius: 16px;
@@ -108,7 +106,7 @@
         .ticker-scroll {
             display: inline-block;
             white-space: nowrap;
-            animation: scrollTicker 60s linear infinite; /* slower */
+            animation: scrollTicker 60s linear infinite;
         }
 
         .ticker-scroll a {
@@ -129,7 +127,6 @@
             100% { transform: translateX(-50%); }
         }
 
-        /* Hero Section */
         .hero {
             display: grid;
             grid-template-columns: 2fr 1fr;
@@ -221,7 +218,6 @@
             font-size: 0.8rem;
         }
 
-        /* News Grid */
         .section-title {
             font-size: 1.5rem;
             margin: 40px 0 20px 0;
@@ -337,20 +333,15 @@
         </div>
     </div>
 
-    <!-- Breaking News Ticker -->
     <div class="ticker-container">
         <div class="ticker-label">BREAKING</div>
         <div class="ticker-content">
-            <div class="ticker-scroll" id="tickerList">
-                Loading latest updates...
-            </div>
+            <div class="ticker-scroll" id="tickerList">Loading latest updates...</div>
         </div>
     </div>
 
-    <!-- Hero Section (populated by JS) -->
     <div class="hero" id="heroSection"></div>
 
-    <!-- Main News Sections -->
     <div id="nba-pane" class="tab-pane active-pane">
         <div class="section-title">Latest from the Association</div>
         <div class="news-grid" id="nba-news">Loading NBA news...</div>
@@ -361,13 +352,15 @@
     </div>
 
     <footer>
-        Sources: ESPN, Bleacher Report, Yahoo Sports, RealGM, CBS Sports, SI, NFL.com + Shams Charania Breaking News (via RSS.app).<br>
+        Sources: ESPN, Bleacher Report, Yahoo Sports, RealGM, CBS Sports, SI, NFL.com +
+        🔥 Shams Charania (NBA) & 🔥 Adam Schefter (NFL) Breaking News via RSS.app.<br>
         Data updates in real-time. Refresh page for latest.
     </footer>
 </div>
 
 <script>
     // ---------- RSS FEEDS ----------
+    // NBA Feeds including Shams Charania
     const nbaFeeds = [
         { name: "🔥 Shams Breaking News", url: "https://rss.app/feeds/KSP50yB3sPn7wSyp.xml", isBreaking: true },
         { name: "ESPN NBA", url: "https://www.espn.com/espn/rss/nba/news" },
@@ -378,7 +371,9 @@
         { name: "Sports Illustrated NBA", url: "https://www.si.com/rss/nba.rss" }
     ];
 
+    // NFL Feeds including Adam Schefter
     const nflFeeds = [
+        { name: "🔥 Adam Schefter Breaking News", url: "https://rss.app/feeds/hAcUsz9WSpqcLFsq.xml", isBreaking: true },
         { name: "ESPN NFL", url: "https://www.espn.com/espn/rss/nfl/news" },
         { name: "Bleacher Report NFL", url: "https://bleacherreport.com/nfl/feed" },
         { name: "Yahoo Sports NFL", url: "https://sports.yahoo.com/nfl/rss/" },
@@ -389,12 +384,10 @@
 
     const PROXY = "https://api.rss2json.com/v1/api.json?rss_url=";
 
-    // Helper to extract image from RSS item (rss2json returns 'enclosure' or thumbnail)
     function getImageFromItem(item) {
         if (item.enclosure && item.enclosure.link) return item.enclosure.link;
         if (item.thumbnail) return item.thumbnail;
         if (item.mediaContent && item.mediaContent.url) return item.mediaContent.url;
-        // Some feeds put image in description - avoid heavy parsing, just use placeholder
         return null;
     }
 
@@ -403,19 +396,15 @@
             const response = await fetch(`${PROXY}${encodeURIComponent(feedUrl)}`);
             const data = await response.json();
             if (data.status !== "ok" || !data.items) return [];
-            return data.items.map(item => {
-                let imageUrl = getImageFromItem(item);
-                // For RSS.app feeds, sometimes image is in description; skip for simplicity
-                return {
-                    title: item.title || "No title",
-                    link: item.link || "#",
-                    pubDate: new Date(item.pubDate),
-                    source: sourceName,
-                    isBreaking: isBreaking,
-                    image: imageUrl,
-                    description: item.description?.replace(/<[^>]*>/g, '').substring(0, 120) || ""
-                };
-            });
+            return data.items.map(item => ({
+                title: item.title || "No title",
+                link: item.link || "#",
+                pubDate: new Date(item.pubDate),
+                source: sourceName,
+                isBreaking: isBreaking,
+                image: getImageFromItem(item),
+                description: item.description?.replace(/<[^>]*>/g, '').substring(0, 120) || ""
+            }));
         } catch (err) {
             console.warn(`Error fetching ${sourceName}:`, err);
             return [];
@@ -431,12 +420,10 @@
                 allArticles = allArticles.concat(res.value);
             }
         }
-        // Sort by newest first (chronological order)
         allArticles.sort((a, b) => b.pubDate - a.pubDate);
         return allArticles;
     }
 
-    // Render main news grid with images
     function renderNews(articles, containerId) {
         const container = document.getElementById(containerId);
         if (!container) return;
@@ -463,7 +450,6 @@
         container.innerHTML = html;
     }
 
-    // Render Hero (top 3 stories) with images
     function renderHero(articles) {
         const heroDiv = document.getElementById('heroSection');
         if (!heroDiv || articles.length === 0) return;
@@ -496,7 +482,6 @@
         heroDiv.innerHTML = heroHtml;
     }
 
-    // Render Breaking News Ticker (slower scroll already set in CSS)
     function renderTicker(articles) {
         const tickerDiv = document.getElementById('tickerList');
         if (!tickerDiv || !articles.length) return;
@@ -545,23 +530,8 @@
         if (container) container.innerHTML = '<div class="loading">Loading latest headlines...</div>';
         const articles = await fetchAllFeeds(nflFeeds);
         renderNews(articles, 'nfl-news');
-        // Hero and ticker are updated only for active tab; for NFL, you may want to show NFL-specific hero.
-        // For simplicity, we update hero/ticker with NFL articles when NFL tab is first loaded.
-        // But current design updates hero/ticker globally. To keep consistent, we'll update hero/ticker with whichever league is active.
-        // Let's also update hero/ticker for NFL when loaded.
         renderHero(articles);
         renderTicker(articles);
-    }
-
-    // Tab Switching - update hero/ticker accordingly
-    let currentLeague = 'nba';
-    async function switchToNBA() {
-        currentLeague = 'nba';
-        await loadNBA();
-    }
-    async function switchToNFL() {
-        currentLeague = 'nfl';
-        await loadNFL();
     }
 
     function initTabs() {
@@ -573,18 +543,12 @@
                 btn.classList.add('active');
                 document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active-pane'));
                 document.getElementById(`${tabId}-pane`).classList.add('active-pane');
-                if (tabId === 'nba') {
-                    if (!window.nbaLoaded) {
-                        await switchToNBA();
-                        window.nbaLoaded = true;
-                    } else {
-                        // If already loaded but need to re-render hero/ticker? Not necessary because hero/ticker already showing NBA.
-                    }
-                } else if (tabId === 'nfl') {
-                    if (!window.nflLoaded) {
-                        await switchToNFL();
-                        window.nflLoaded = true;
-                    }
+                if (tabId === 'nba' && !window.nbaLoaded) {
+                    await loadNBA();
+                    window.nbaLoaded = true;
+                } else if (tabId === 'nfl' && !window.nflLoaded) {
+                    await loadNFL();
+                    window.nflLoaded = true;
                 }
             });
         });
@@ -592,7 +556,6 @@
 
     window.nbaLoaded = false;
     window.nflLoaded = false;
-    // Initial load: NBA
     loadNBA().then(() => { window.nbaLoaded = true; });
     initTabs();
 </script>
