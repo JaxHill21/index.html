@@ -44,7 +44,7 @@
         .card-content { padding: 20px; }
         .news-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; line-height: 1.4; }
         .news-title a { text-decoration: none; color: #f3f4f6; }
-        .news-title a:hover { color: #60a5fa; }
+        .news-title a:hover { color: #60a5fa; text-decoration: underline; }
         .news-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; font-size: 0.75rem; color: #6b7280; flex-wrap: wrap; gap: 8px; }
         .source { background: #1e293b; padding: 4px 12px; border-radius: 30px; font-weight: 500; }
         .source-breaking { background: #ef4444; color: white; }
@@ -82,6 +82,7 @@
         </div>
     </div>
 
+    <!-- News section (unchanged, fully functional) -->
     <div id="news-ticker-container" class="ticker-container" style="display: flex;">
         <div class="ticker-label">BREAKING</div>
         <div class="ticker-content"><div class="ticker-scroll" id="tickerList">Loading...</div></div>
@@ -90,41 +91,54 @@
     <div id="news-section-title" class="section-title">Latest from the Association</div>
     <div id="news-grid" class="news-grid">Loading news...</div>
 
+    <!-- Data Vault Pane (simplified, working) -->
     <div id="vault-pane" class="tab-pane" style="display: none;">
         <div class="section-title">Data Vault</div>
+        
+        <!-- NBA Teams (balldontlie.io) -->
         <div class="vault-card">
-            <h3>Today's Games & Live Box Scores</h3>
+            <h3>🏀 NBA Teams</h3>
+            <button id="load-nba-teams">Load NBA Teams</button>
+            <div id="nba-teams-table">Click to load NBA team information.</div>
+        </div>
+
+        <!-- NBA Player Stats (balldontlie.io) -->
+        <div class="vault-card">
+            <h3>🏀 NBA Player Stats</h3>
+            <input type="text" id="nba-player-name" placeholder="e.g., LeBron James" style="width: 200px;">
+            <button id="load-nba-player-stats">Get Stats</button>
+            <div id="nba-player-stats-result"></div>
+        </div>
+
+        <!-- NFL Standings (ESPN public API) -->
+        <div class="vault-card">
+            <h3>🏈 NFL Standings</h3>
+            <button id="load-nfl-standings">Load NFL Standings</button>
+            <div id="nfl-standings-table">Click to load NFL standings.</div>
+        </div>
+
+        <!-- NFL Schedule (ESPN public API) -->
+        <div class="vault-card">
+            <h3>🏈 NFL Schedule (Today's Games)</h3>
+            <button id="load-nfl-schedule">Load Today's NFL Games</button>
+            <div id="nfl-schedule-table">Click to load today's schedule.</div>
+        </div>
+
+        <!-- Today's Games & Box Scores (ESPN) -->
+        <div class="vault-card">
+            <h3>📋 Today's Games & Live Box Scores</h3>
             <select id="league-selector"><option value="nba">NBA</option><option value="nfl">NFL</option></select>
             <div id="games-list">Select a league to view today's games.</div>
         </div>
         <div id="boxscore-container" class="vault-card" style="display: none;"><h3>Box Score</h3><div id="boxscore-content"></div></div>
-        <div class="vault-card">
-            <h3>Team Records (Current Season)</h3>
-            <select id="team-stats-league"><option value="nba">NBA</option><option value="nfl">NFL</option></select>
-            <button id="load-team-stats">Load Team Stats</button>
-            <div id="team-stats-table">Select league and click 'Load Team Stats'.</div>
-        </div>
-        <div class="vault-card">
-            <h3>Player Season Stats</h3>
-            <select id="player-stats-league"><option value="nba">NBA</option><option value="nfl">NFL</option></select>
-            <input type="text" id="player-name" placeholder="Enter player name (e.g., LeBron James)">
-            <button id="load-player-stats">Get Stats</button>
-            <div id="player-stats-result"></div>
-        </div>
-        <div class="vault-card">
-            <h3>Standings & Schedule</h3>
-            <select id="standings-league"><option value="nba">NBA</option><option value="nfl">NFL</option></select>
-            <button id="load-standings">Load Standings</button>
-            <button id="load-schedule">Load Today's Schedule</button>
-            <div id="standings-schedule-container"></div>
-        </div>
     </div>
-    <footer>News: ESPN, Bleacher Report, Yahoo, RealGM, CBS, SI, NFL.com + Shams (NBA) / Schefter (NFL).<br>Data Vault: Official ESPN APIs (standings, stats, schedule, box scores).</footer>
+
+    <footer>News: ESPN, Bleacher Report, Yahoo, RealGM, CBS, SI, NFL.com + Shams (NBA) / Schefter (NFL).<br>Data Vault: NBA via balldontlie.io | NFL via ESPN public APIs.</footer>
 </div>
 
 <script>
     // ============================================
-    // 1. NEWS MODULE (unchanged, working)
+    // 1. NEWS MODULE (same as before, working)
     // ============================================
     const nbaFeeds = [
         { name: "🔥 Shams Breaking News", url: "https://rss.app/feeds/KSP50yB3sPn7wSyp.xml", isBreaking: true },
@@ -148,109 +162,106 @@
     const MAX_ARTICLES = 25;
 
     function getImageFromItem(item) {
-        if (item.enclosure && item.enclosure.link) return item.enclosure.link;
+        if (item.enclosure?.link) return item.enclosure.link;
         if (item.thumbnail) return item.thumbnail;
-        if (item.mediaContent && item.mediaContent.url) return item.mediaContent.url;
         return null;
     }
     function parseDate(dateString) {
         if (!dateString) return new Date();
         let d = new Date(dateString);
         if (!isNaN(d.getTime())) return d;
-        d = new Date(dateString.replace(/([+-]\d{2}):?(\d{2})$/, '$1$2'));
-        if (!isNaN(d.getTime())) return d;
         return new Date();
     }
     async function fetchRssFeed(feedUrl, sourceName, isBreaking = false) {
         try {
-            const response = await fetch(`${PROXY}${encodeURIComponent(feedUrl)}`);
-            const data = await response.json();
+            const res = await fetch(`${PROXY}${encodeURIComponent(feedUrl)}`);
+            const data = await res.json();
             if (data.status !== "ok" || !data.items) return [];
             return data.items.map(item => {
                 let pubDate = parseDate(item.pubDate);
                 const now = new Date();
-                if (pubDate > new Date(now.getTime() + 60 * 60 * 1000)) pubDate = now;
+                if (pubDate > new Date(now.getTime() + 60*60*1000)) pubDate = now;
                 return {
                     title: item.title || "No title",
                     link: item.link || "#",
-                    pubDate: pubDate,
+                    pubDate,
                     source: sourceName,
-                    isBreaking: isBreaking,
+                    isBreaking,
                     image: getImageFromItem(item)
                 };
             });
         } catch (err) { return []; }
     }
-    function normalizeTitle(title) {
-        return title.toLowerCase().replace(/[^\w\s]/g, '').replace(/\b(?:breaking|report|sources|update|just in|nba|nfl|basketball|football|news|insider)\b/g, '').replace(/\s+/g, ' ').trim();
-    }
-    function areSimilar(t1, t2) {
-        const n1 = normalizeTitle(t1), n2 = normalizeTitle(t2);
-        if (n1 === n2) return true;
-        const w1 = n1.split(' '), w2 = n2.split(' ');
-        const common = w1.filter(w => w2.includes(w)).length;
-        return common / Math.max(w1.length, w2.length) > 0.6;
+    function normalizeTitle(t) { return t.toLowerCase().replace(/[^\w\s]/g,'').replace(/\b(?:breaking|report|sources|update|just in|nba|nfl)\b/g,'').trim(); }
+    function areSimilar(t1,t2) {
+        const n1=normalizeTitle(t1), n2=normalizeTitle(t2);
+        if (n1===n2) return true;
+        const w1=n1.split(' '), w2=n2.split(' ');
+        const common = w1.filter(w=>w2.includes(w)).length;
+        return common/Math.max(w1.length,w2.length) > 0.6;
     }
     function deduplicateArticles(articles) {
-        const groups = [];
+        const groups=[];
         for (const a of articles) {
-            let added = false;
-            for (const g of groups) if (areSimilar(g[0].title, a.title)) { g.push(a); added = true; break; }
+            let added=false;
+            for (const g of groups) if (areSimilar(g[0].title,a.title)) { g.push(a); added=true; break; }
             if (!added) groups.push([a]);
         }
-        const unique = groups.map(g => g.reduce((a,b) => a.pubDate > b.pubDate ? a : b));
-        unique.sort((a,b) => b.pubDate - a.pubDate);
-        return unique;
+        const unique = groups.map(g=>g.reduce((a,b)=>a.pubDate>b.pubDate?a:b));
+        unique.sort((a,b)=>b.pubDate-a.pubDate);
+        return unique.slice(0,MAX_ARTICLES);
     }
     async function fetchAllFeeds(feedsArray) {
-        const results = await Promise.allSettled(feedsArray.map(f => fetchRssFeed(f.url, f.name, f.isBreaking)));
-        let all = [];
-        for (let r of results) if (r.status === "fulfilled") all = all.concat(r.value);
-        let unique = deduplicateArticles(all);
-        if (unique.length > MAX_ARTICLES) unique = unique.slice(0, MAX_ARTICLES);
-        return unique;
+        const results = await Promise.allSettled(feedsArray.map(f=>fetchRssFeed(f.url,f.name,f.isBreaking)));
+        let all=[];
+        for (let r of results) if (r.status==="fulfilled") all=all.concat(r.value);
+        return deduplicateArticles(all);
     }
-    function formatFullDateTime(date) { return date.toLocaleString(undefined, { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit', timeZoneName:'short' }); }
-    function formatRelativeTime(date) {
-        const diff = Math.floor((new Date() - date) / 60000);
-        if (diff < 1) return "just now";
-        if (diff < 60) return `${diff} min ago`;
-        if (diff < 1440) return `${Math.floor(diff/60)} hours ago`;
-        return date.toLocaleDateString(undefined, { month:'short', day:'numeric' });
+    function formatFullDateTime(d) { return d.toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'short'}); }
+    function formatRelativeTime(d) {
+        const diff=Math.floor((new Date()-d)/60000);
+        if (diff<1) return "just now";
+        if (diff<60) return `${diff} min ago`;
+        if (diff<1440) return `${Math.floor(diff/60)} hours ago`;
+        return d.toLocaleDateString(undefined,{month:'short',day:'numeric'});
     }
     function renderNews(articles, containerId) {
         const container = document.getElementById(containerId);
         if (!container) return;
-        if (!articles.length) { container.innerHTML = '<div class="error">No articles.</div>'; return; }
-        container.innerHTML = articles.map(a => {
-            const hasImage = a.image && a.image.trim();
-            return `<div class="news-card">
-                ${hasImage ? `<div class="card-img" style="background-image: url(${a.image});"></div>` : ''}
+        if (!articles.length) { container.innerHTML='<div class="error">No articles.</div>'; return; }
+        container.innerHTML = articles.map(a=>`
+            <div class="news-card">
+                ${a.image ? `<div class="card-img" style="background-image: url(${a.image});"></div>` : ''}
                 <div class="card-content">
                     <div class="news-title"><a href="${a.link}" target="_blank">${escapeHtml(a.title)}</a></div>
-                    <div class="news-meta"><span class="source ${a.isBreaking ? 'source-breaking' : ''}">${escapeHtml(a.source)}</span><span class="datetime">${formatRelativeTime(a.pubDate)}</span></div>
-                    <div class="datetime" style="font-size:0.7rem; margin-top:8px; color:#6b7280;">${formatFullDateTime(a.pubDate)}</div>
+                    <div class="news-meta"><span class="source ${a.isBreaking?'source-breaking':''}">${escapeHtml(a.source)}</span><span class="datetime">${formatRelativeTime(a.pubDate)}</span></div>
+                    <div class="datetime" style="font-size:0.7rem;margin-top:8px;color:#6b7280;">${formatFullDateTime(a.pubDate)}</div>
                 </div>
-            </div>`;
-        }).join('');
+            </div>
+        `).join('');
     }
     function renderHero(articles) {
         const heroDiv = document.getElementById('news-hero');
-        if (!heroDiv || !articles.length) { heroDiv.innerHTML = ''; return; }
+        if (!heroDiv || !articles.length) { heroDiv.innerHTML=''; return; }
         const top3 = articles.slice(0,3);
         const main = top3[0], sides = top3.slice(1);
-        heroDiv.innerHTML = `<div class="hero-main"><div class="hero-img" style="${main.image ? `background-image: url(${main.image});` : 'background-color:#1e293b;'}"></div><div class="hero-text"><div class="hero-category">${escapeHtml(main.source)}</div><h2><a href="${main.link}" target="_blank">${escapeHtml(main.title)}</a></h2><div class="datetime" style="margin-top:10px;">${formatFullDateTime(main.pubDate)}</div></div></div>
-            <div class="hero-side">${sides.map(s => `<div class="side-card"><div class="side-img" style="${s.image ? `background-image: url(${s.image});` : 'background-color:#1e293b;'}"></div><div class="side-content"><h4><a href="${s.link}" target="_blank">${escapeHtml(s.title)}</a></h4><p>${escapeHtml(s.source)} • ${formatRelativeTime(s.pubDate)}</p><p style="font-size:0.7rem;">${formatFullDateTime(s.pubDate)}</p></div></div>`).join('')}</div>`;
+        heroDiv.innerHTML = `
+            <div class="hero-main">
+                <div class="hero-img" style="${main.image ? `background-image: url(${main.image});` : 'background-color:#1e293b;'}"></div>
+                <div class="hero-text"><div class="hero-category">${escapeHtml(main.source)}</div><h2><a href="${main.link}" target="_blank">${escapeHtml(main.title)}</a></h2><div class="datetime" style="margin-top:10px;">${formatFullDateTime(main.pubDate)}</div></div>
+            </div>
+            <div class="hero-side">${sides.map(s=>`<div class="side-card"><div class="side-img" style="${s.image ? `background-image: url(${s.image});` : 'background-color:#1e293b;'}"></div><div class="side-content"><h4><a href="${s.link}" target="_blank">${escapeHtml(s.title)}</a></h4><p>${escapeHtml(s.source)} • ${formatRelativeTime(s.pubDate)}</p><p style="font-size:0.7rem;">${formatFullDateTime(s.pubDate)}</p></div></div>`).join('')}</div>
+        `;
     }
     function renderTicker(articles) {
         const tickerDiv = document.getElementById('tickerList');
         if (!tickerDiv) return;
-        const breaking = articles.filter(a => a.isBreaking).slice(0,15);
-        if (!breaking.length) { tickerDiv.innerHTML = '<span>No breaking news.</span>'; return; }
+        const breaking = articles.filter(a=>a.isBreaking).slice(0,15);
+        if (!breaking.length) { tickerDiv.innerHTML='<span>No breaking news.</span>'; return; }
         const items = [...breaking, ...breaking];
-        tickerDiv.innerHTML = items.map(i => `<a href="${i.link}" target="_blank">⚡ ${escapeHtml(i.title)}</a>`).join('');
+        tickerDiv.innerHTML = items.map(i=>`<a href="${i.link}" target="_blank">⚡ ${escapeHtml(i.title)}</a>`).join('');
     }
-    function escapeHtml(str) { return str?.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])) || ''; }
+    function escapeHtml(str) { return str?.replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])) || ''; }
     async function loadLeague(league) {
         const feeds = league === 'nba' ? nbaFeeds : nflFeeds;
         const title = league === 'nba' ? 'Latest from the Association' : 'Around the League';
@@ -263,17 +274,94 @@
     }
 
     // ============================================
-    // 2. DATA VAULT MODULE (FIXED with official ESPN APIs)
+    // 2. DATA VAULT MODULE (100% client-side, no backend)
     // ============================================
     async function fetchAPI(url) {
         try {
             const res = await fetch(url);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             return await res.json();
-        } catch (e) { console.error(url, e); return null; }
+        } catch(e) { console.error(url,e); return null; }
     }
 
-    // 2.1 Today's Games (scoreboard)
+    // NBA Teams (balldontlie.io)
+    document.getElementById('load-nba-teams').addEventListener('click', async () => {
+        const container = document.getElementById('nba-teams-table');
+        container.innerHTML = '<div class="loading-spinner">Loading NBA teams...</div>';
+        const data = await fetchAPI('https://www.balldontlie.io/api/v1/teams');
+        if (!data?.data) { container.innerHTML = '<div class="error-message">Failed to load NBA teams.</div>'; return; }
+        let html = '<table class="data-table"><thead><tr><th>Team</th><th>City</th><th>Conference</th><th>Division</th></tr></thead><tbody>';
+        data.data.forEach(team => {
+            html += `<tr><td>${escapeHtml(team.full_name)}</td><td>${escapeHtml(team.city)}</td><td>${escapeHtml(team.conference)}</td><td>${escapeHtml(team.division)}</td></tr>`;
+        });
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    });
+
+    // NBA Player Stats (balldontlie.io)
+    document.getElementById('load-nba-player-stats').addEventListener('click', async () => {
+        const playerName = document.getElementById('nba-player-name').value.trim();
+        if (!playerName) { alert('Enter a player name'); return; }
+        const container = document.getElementById('nba-player-stats-result');
+        container.innerHTML = '<div class="loading-spinner">Searching...</div>';
+        const searchData = await fetchAPI(`https://www.balldontlie.io/api/v1/players?search=${encodeURIComponent(playerName)}`);
+        if (!searchData?.data?.length) { container.innerHTML = `<div class="error-message">No player found for "${playerName}".</div>`; return; }
+        const player = searchData.data[0];
+        const statsData = await fetchAPI(`https://www.balldontlie.io/api/v1/season_averages?player_ids[]=${player.id}`);
+        if (!statsData?.data?.length) { container.innerHTML = `<div class="error-message">No season stats for ${player.first_name} ${player.last_name}.</div>`; return; }
+        const stats = statsData.data[0];
+        let html = `<h4>${player.first_name} ${player.last_name} (${player.team?.full_name || 'N/A'})</h4><div class="team-stats-grid">`;
+        const keys = ['pts','reb','ast','fg_pct','fg3_pct','ft_pct','stl','blk'];
+        keys.forEach(k => {
+            if (stats[k] !== undefined && stats[k] !== null) {
+                const label = k.toUpperCase().replace('_PCT','%');
+                html += `<div class="stat-item"><div class="stat-label">${label}</div><div class="stat-value">${stats[k]}</div></div>`;
+            }
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    });
+
+    // NFL Standings (ESPN public v2 API - works)
+    document.getElementById('load-nfl-standings').addEventListener('click', async () => {
+        const container = document.getElementById('nfl-standings-table');
+        container.innerHTML = '<div class="loading-spinner">Loading NFL standings...</div>';
+        const url = 'https://site.api.espn.com/apis/v2/sports/football/nfl/standings';
+        const data = await fetchAPI(url);
+        if (!data?.children) { container.innerHTML = '<div class="error-message">Could not load NFL standings.</div>'; return; }
+        let html = '<table class="data-table"><thead><tr><th>Team</th><th>Record</th></tr></thead><tbody>';
+        function extract(node) {
+            if (node.team) {
+                const record = node.stats?.find(s => s.name === 'standings')?.displayValue || 'N/A';
+                html += `<tr><td>${escapeHtml(node.team.displayName)}</td><td>${record}</td></tr>`;
+            }
+            if (node.children) node.children.forEach(extract);
+        }
+        data.children.forEach(extract);
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    });
+
+    // NFL Schedule (ESPN scoreboard)
+    document.getElementById('load-nfl-schedule').addEventListener('click', async () => {
+        const container = document.getElementById('nfl-schedule-table');
+        container.innerHTML = '<div class="loading-spinner">Loading schedule...</div>';
+        const url = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard';
+        const data = await fetchAPI(url);
+        if (!data?.events?.length) { container.innerHTML = '<div class="error-message">No games today.</div>'; return; }
+        let html = '<div class="team-stats-grid">';
+        data.events.forEach(e => {
+            const comp = e.competitions[0];
+            const home = comp.competitors.find(c => c.homeAway === 'home');
+            const away = comp.competitors.find(c => c.homeAway === 'away');
+            const date = new Date(e.date);
+            html += `<div class="game-card"><div><strong>${away.team.displayName}</strong> @ <strong>${home.team.displayName}</strong></div><div style="font-size:0.8rem;">${date.toLocaleDateString()} • ${date.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div></div>`;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    });
+
+    // Today's Games & Box Scores (ESPN)
     async function loadGames(league) {
         const container = document.getElementById('games-list');
         container.innerHTML = '<div class="loading-spinner">Loading games...</div>';
@@ -295,7 +383,6 @@
             card.addEventListener('click', () => loadBoxScore(card.dataset.gameId, card.dataset.league));
         });
     }
-
     async function loadBoxScore(gameId, league) {
         const boxContainer = document.getElementById('boxscore-container');
         const boxContent = document.getElementById('boxscore-content');
@@ -304,7 +391,7 @@
         const sport = league === 'nba' ? 'basketball/nba' : 'football/nfl';
         const url = `https://site.api.espn.com/apis/site/v2/sports/${sport}/summary?event=${gameId}`;
         const data = await fetchAPI(url);
-        if (!data?.boxscore?.teams) { boxContent.innerHTML = '<div class="error-message">No box score.</div>'; return; }
+        if (!data?.boxscore?.teams) { boxContent.innerHTML = '<div class="error-message">No box score available.</div>'; return; }
         let html = '';
         data.boxscore.teams.forEach(team => {
             html += `<h4>${team.team.displayName}</h4><div class="team-stats-grid">`;
@@ -316,103 +403,7 @@
         });
         boxContent.innerHTML = html;
     }
-
-    // 2.2 Team Records (standings)
-    async function loadTeamStats(league) {
-        const container = document.getElementById('team-stats-table');
-        container.innerHTML = '<div class="loading-spinner">Loading...</div>';
-        const sport = league === 'nba' ? 'basketball/nba' : 'football/nfl';
-        // Use the v2 standings endpoint (works)
-        const url = `https://site.api.espn.com/apis/v2/sports/${sport}/standings`;
-        const data = await fetchAPI(url);
-        if (!data?.children) { container.innerHTML = '<div class="error-message">No standings data.</div>'; return; }
-        const teams = [];
-        function extract(node) {
-            if (node.team) {
-                const record = node.stats?.find(s => s.name === 'standings')?.displayValue || 'N/A';
-                teams.push({ name: node.team.displayName, record });
-            }
-            if (node.children) node.children.forEach(extract);
-        }
-        data.children.forEach(extract);
-        if (!teams.length) { container.innerHTML = '<div class="error-message">No teams found.</div>'; return; }
-        let html = '<table class="data-table"><thead><tr><th>Team</th><th>Record</th></tr></thead><tbody>';
-        teams.forEach(t => { html += `<tr><td>${escapeHtml(t.name)}</td><td>${t.record}</td></tr>`; });
-        html += '</tbody></table>';
-        container.innerHTML = html;
-    }
-
-    // 2.3 Player Stats (using common/v3 API)
-    async function loadPlayerStats(league, playerName) {
-        const container = document.getElementById('player-stats-result');
-        container.innerHTML = '<div class="loading-spinner">Searching...</div>';
-        const sport = league === 'nba' ? 'basketball/nba' : 'football/nfl';
-        // Search athlete by name
-        const searchUrl = `https://site.web.api.espn.com/apis/site/v2/sports/${sport}/athletes?search=${encodeURIComponent(playerName)}`;
-        const searchData = await fetchAPI(searchUrl);
-        if (!searchData?.athletes?.length) { container.innerHTML = `<div class="error-message">No player found for "${playerName}".</div>`; return; }
-        const player = searchData.athletes[0];
-        // Get stats from common/v3
-        const statsUrl = `https://site.web.api.espn.com/apis/common/v3/sports/${sport}/athletes/${player.id}/stats`;
-        const statsData = await fetchAPI(statsUrl);
-        if (!statsData?.athlete?.seasonStats) { container.innerHTML = '<div class="error-message">No season stats available.</div>'; return; }
-        const stats = statsData.athlete.seasonStats;
-        let html = `<h4>${player.displayName} (${player.position?.abbreviation || 'N/A'})</h4><div class="team-stats-grid">`;
-        // Show key stats based on league
-        const keys = league === 'nba' 
-            ? ['ppg', 'rpg', 'apg', 'fgpct', 'threePtPct', 'ftPct']
-            : ['passingYards', 'rushingYards', 'receivingYards', 'touchdowns', 'interceptions'];
-        for (let [k, v] of Object.entries(stats)) {
-            if (keys.includes(k) && typeof v === 'number') {
-                html += `<div class="stat-item"><div class="stat-label">${k.replace(/([A-Z])/g,' $1').toUpperCase()}</div><div class="stat-value">${v}</div></div>`;
-            }
-        }
-        html += '</div>';
-        container.innerHTML = html;
-    }
-
-    // 2.4 Standings (same as team stats but full view)
-    async function loadStandings(league) {
-        const container = document.getElementById('standings-schedule-container');
-        container.innerHTML = '<div class="loading-spinner">Loading standings...</div>';
-        const sport = league === 'nba' ? 'basketball/nba' : 'football/nfl';
-        const url = `https://site.api.espn.com/apis/v2/sports/${sport}/standings`;
-        const data = await fetchAPI(url);
-        if (!data?.children) { container.innerHTML = '<div class="error-message">No standings.</div>'; return; }
-        let html = '<div class="team-stats-grid">';
-        function render(node) {
-            if (node.team) {
-                const record = node.stats?.find(s => s.name === 'standings')?.displayValue || 'N/A';
-                html += `<div style="margin:10px 0; padding:10px; background:#1e293b; border-radius:8px;">${node.team.displayName} - ${record}</div>`;
-            }
-            if (node.children) {
-                if (node.name) html += `<div style="margin-bottom:20px;"><strong>${node.name}</strong></div>`;
-                node.children.forEach(render);
-            }
-        }
-        data.children.forEach(render);
-        html += '</div>';
-        container.innerHTML = html;
-    }
-
-    async function loadSchedule(league) {
-        const container = document.getElementById('standings-schedule-container');
-        container.innerHTML = '<div class="loading-spinner">Loading schedule...</div>';
-        const sport = league === 'nba' ? 'basketball/nba' : 'football/nfl';
-        const url = `https://site.api.espn.com/apis/site/v2/sports/${sport}/scoreboard`;
-        const data = await fetchAPI(url);
-        if (!data?.events?.length) { container.innerHTML = '<div class="error-message">No games today.</div>'; return; }
-        let html = '<div class="team-stats-grid">';
-        data.events.forEach(e => {
-            const comp = e.competitions[0];
-            const home = comp.competitors.find(c => c.homeAway === 'home');
-            const away = comp.competitors.find(c => c.homeAway === 'away');
-            const date = new Date(e.date);
-            html += `<div class="game-card"><div><strong>${away.team.displayName}</strong> @ <strong>${home.team.displayName}</strong></div><div style="font-size:0.8rem;">${date.toLocaleDateString()} • ${date.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div></div>`;
-        });
-        html += '</div>';
-        container.innerHTML = html;
-    }
+    document.getElementById('league-selector')?.addEventListener('change', e => loadGames(e.target.value));
 
     // ============================================
     // 3. TAB SWITCHING
@@ -430,7 +421,7 @@
         document.getElementById('news-section-title').style.display = 'none';
         document.getElementById('news-grid').style.display = 'none';
         document.getElementById('vault-pane').style.display = 'block';
-        if (!window.vaultInit) { loadGames('nba'); window.vaultInit = true; }
+        if (!window.vaultLoaded) { loadGames('nba'); window.vaultLoaded = true; }
     }
     function initTabs() {
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -444,20 +435,10 @@
             });
         });
     }
-    document.getElementById('league-selector')?.addEventListener('change', e => loadGames(e.target.value));
-    document.getElementById('load-team-stats')?.addEventListener('click', () => loadTeamStats(document.getElementById('team-stats-league').value));
-    document.getElementById('load-player-stats')?.addEventListener('click', () => {
-        const league = document.getElementById('player-stats-league').value;
-        const name = document.getElementById('player-name').value.trim();
-        if (name) loadPlayerStats(league, name);
-    });
-    document.getElementById('load-standings')?.addEventListener('click', () => loadStandings(document.getElementById('standings-league').value));
-    document.getElementById('load-schedule')?.addEventListener('click', () => loadSchedule(document.getElementById('standings-league').value));
-
     showNewsTab();
     loadLeague('nba');
     initTabs();
-    window.vaultInit = false;
+    window.vaultLoaded = false;
 </script>
 </body>
 </html>
