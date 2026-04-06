@@ -248,7 +248,6 @@
         .card-img {
             width: 100%;
             height: 180px;
-            background: #1e293b;
             background-size: cover;
             background-position: center;
         }
@@ -352,7 +351,7 @@
     <footer>
         Sources: ESPN, Bleacher Report, Yahoo Sports, RealGM, CBS Sports, SI, NFL.com +
         🔥 Shams Charania (NBA) & 🔥 Adam Schefter (NFL) Breaking News via RSS.app.<br>
-        Data updates in real-time. Refresh page for latest.
+        Data updates in real-time. Max 25 unique stories per league.
     </footer>
 </div>
 
@@ -379,6 +378,7 @@
     ];
 
     const PROXY = "https://api.rss2json.com/v1/api.json?rss_url=";
+    const MAX_ARTICLES = 25;
 
     function getImageFromItem(item) {
         if (item.enclosure && item.enclosure.link) return item.enclosure.link;
@@ -410,6 +410,50 @@
         }
     }
 
+    // Normalize title for deduplication: remove common words, punctuation, lowercase
+    function normalizeTitle(title) {
+        return title.toLowerCase()
+            .replace(/[^\w\s]/g, '')
+            .replace(/\b(?:breaking|report|sources|update|just in|nba|nfl|basketball|football|news|insider)\b/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    // Check if two titles are similar (overlap > 60%)
+    function areSimilar(title1, title2) {
+        const norm1 = normalizeTitle(title1);
+        const norm2 = normalizeTitle(title2);
+        if (norm1 === norm2) return true;
+        const words1 = norm1.split(' ');
+        const words2 = norm2.split(' ');
+        const common = words1.filter(w => words2.includes(w)).length;
+        const similarity = common / Math.max(words1.length, words2.length);
+        return similarity > 0.6;
+    }
+
+    // Deduplicate and keep only the most recent article per topic group
+    function deduplicateArticles(articles) {
+        const groups = [];
+        for (const article of articles) {
+            let addedToGroup = false;
+            for (const group of groups) {
+                if (areSimilar(group[0].title, article.title)) {
+                    group.push(article);
+                    addedToGroup = true;
+                    break;
+                }
+            }
+            if (!addedToGroup) {
+                groups.push([article]);
+            }
+        }
+        // For each group, keep the most recent (newest pubDate)
+        const unique = groups.map(group => group.reduce((a, b) => a.pubDate > b.pubDate ? a : b));
+        // Sort by date descending
+        unique.sort((a, b) => b.pubDate - a.pubDate);
+        return unique;
+    }
+
     async function fetchAllFeeds(feedsArray) {
         const promises = feedsArray.map(feed => fetchRssFeed(feed.url, feed.name, feed.isBreaking || false));
         const results = await Promise.allSettled(promises);
@@ -419,19 +463,13 @@
                 allArticles = allArticles.concat(res.value);
             }
         }
-        // Remove exact duplicate titles (case-insensitive)
-        const seen = new Set();
-        const unique = [];
-        for (let article of allArticles) {
-            const lowerTitle = article.title.toLowerCase();
-            if (!seen.has(lowerTitle)) {
-                seen.add(lowerTitle);
-                unique.push(article);
-            }
+        // Deduplicate by topic similarity
+        let uniqueArticles = deduplicateArticles(allArticles);
+        // Limit to max articles
+        if (uniqueArticles.length > MAX_ARTICLES) {
+            uniqueArticles = uniqueArticles.slice(0, MAX_ARTICLES);
         }
-        // Sort newest first
-        unique.sort((a, b) => b.pubDate - a.pubDate);
-        return unique;
+        return uniqueArticles;
     }
 
     function renderNews(articles, containerId) {
@@ -530,13 +568,11 @@
         return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     }
 
-    // Core function to load a league
     async function loadLeague(league) {
         const feeds = league === 'nba' ? nbaFeeds : nflFeeds;
         const sectionTitle = league === 'nba' ? 'Latest from the Association' : 'Around the League';
         document.getElementById('sectionTitle').innerText = sectionTitle;
         
-        // Show loading
         const gridContainer = document.getElementById('newsGrid');
         gridContainer.innerHTML = '<div class="loading">Loading headlines...</div>';
         
@@ -546,22 +582,18 @@
         renderTicker(articles);
     }
 
-    // Tab switching
     function initTabs() {
         const tabs = document.querySelectorAll('.tab-btn');
         tabs.forEach(btn => {
             btn.addEventListener('click', async () => {
                 const league = btn.getAttribute('data-league');
-                // Update active class on buttons
                 tabs.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                // Load the selected league
                 await loadLeague(league);
             });
         });
     }
 
-    // Start with NBA
     loadLeague('nba');
     initTabs();
 </script>
