@@ -481,14 +481,13 @@
     </div>
 
     <footer>
-        All major sources: ESPN, Bleacher Report, Yahoo, RealGM, CBS, SI, NFL.com, NCAA.com, D1.ticker, Coaches Wire.
-        Articles are sorted newest to oldest using only valid parsed publish timestamps.
+        Mixed-source sports brief with newest-first ranking, soft source balancing, and image extraction from RSS thumbnails and embedded content.
     </footer>
 </div>
 
 <script>
     // ============================================
-    // Helper functions
+    // Helpers
     // ============================================
     function decodeHtmlEntities(text) {
         if (!text) return '';
@@ -516,13 +515,11 @@
     }
 
     function escapeAttribute(str) {
-        return String(str || '').replace(/"/g, '&quot;');
-    }
-
-    function getImageFromItem(item) {
-        if (item.enclosure && item.enclosure.link) return item.enclosure.link;
-        if (item.thumbnail) return item.thumbnail;
-        return null;
+        return String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
     }
 
     function backgroundStyle(url) {
@@ -530,8 +527,22 @@
         return `background-image: url("${escapeAttribute(url)}"); background-size: cover; background-position: center;`;
     }
 
+    function normalizeImageUrl(url) {
+        if (!url || typeof url !== 'string') return null;
+        const cleaned = decodeHtmlEntities(url.trim());
+        if (!/^https?:\/\//i.test(cleaned)) return null;
+        if (/^data:/i.test(cleaned)) return null;
+        return cleaned;
+    }
+
+    function extractImageFromHtml(html) {
+        if (!html || typeof html !== 'string') return null;
+        const match = html.match(/<img[^>]+src=["']([^"'<>]+)["']/i);
+        return match ? normalizeImageUrl(match[1]) : null;
+    }
+
     // ============================================
-    // RSS Feeds
+    // Feeds
     // ============================================
     const nbaFeeds = [
         { name: "🔥 Shams Breaking News", url: "https://rss.app/feeds/KSP50yB3sPn7wSyp.xml", isBreaking: true },
@@ -566,10 +577,35 @@
 
     const PROXY = "https://api.rss2json.com/v1/api.json?rss_url=";
     const MAX_ARTICLES = 12;
+    const SOFT_SOURCE_CAP = 2;
+    const TICKER_ITEMS = 15;
     let latestLoadRequestId = 0;
 
     // ============================================
-    // Date parsing and normalization
+    // Image extraction
+    // ============================================
+    function getImageFromItem(item) {
+        const candidates = [
+            item?.enclosure?.link,
+            item?.thumbnail,
+            item?.image,
+            item?.["media:content"]?.url,
+            item?.["media:thumbnail"]?.url,
+            extractImageFromHtml(item?.description),
+            extractImageFromHtml(item?.content),
+            extractImageFromHtml(item?.content_encoded)
+        ];
+
+        for (const candidate of candidates) {
+            const url = normalizeImageUrl(candidate);
+            if (url) return url;
+        }
+
+        return null;
+    }
+
+    // ============================================
+    // Date parsing
     // ============================================
     function parseRssDate(dateString) {
         if (!dateString || typeof dateString !== 'string') {
@@ -588,17 +624,14 @@
 
         addCandidate(raw);
 
-        // Example: 2026-04-07 14:32:00  -> force UTC for deterministic handling
         if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(raw)) {
             addCandidate(raw.replace(' ', 'T') + 'Z');
         }
 
-        // Example: 2026-04-07T14:32:00 -> force UTC if timezone is missing
         if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(raw)) {
             addCandidate(raw + 'Z');
         }
 
-        // Example: +00:00 -> +0000 for older parsers
         addCandidate(raw.replace(/([+-]\d{2}):(\d{2})$/, '$1$2'));
 
         let parsed = null;
@@ -616,7 +649,7 @@
         }
 
         const now = Date.now();
-        const futureToleranceMs = 60 * 60 * 1000; // 1 hour
+        const futureToleranceMs = 60 * 60 * 1000;
 
         if (parsed.getTime() > now + futureToleranceMs) {
             return { date: null, raw, valid: false, reason: 'future_outlier' };
@@ -626,7 +659,7 @@
     }
 
     // ============================================
-    // Fetch and normalize feeds
+    // Feed fetch / normalize
     // ============================================
     async function fetchRssFeed(feedUrl, sourceName, isBreaking = false) {
         try {
@@ -675,12 +708,51 @@
         return output;
     }
 
+    function selectBalancedArticles(sortedArticles, maxArticles, perSourceCap) {
+        const selected = [];
+        const selectedKeys = new Set();
+        const sourceCounts = {};
+
+        // Pass 1: soft source cap for diversity
+        for (const article of sortedArticles) {
+            if (selected.length >= maxArticles) break;
+
+            const key = article.link || article.title || JSON.stringify(article);
+            const source = article.source || 'Unknown';
+
+            if (selectedKeys.has(key)) continue;
+
+            if (!sourceCounts[source]) sourceCounts[source] = 0;
+            if (sourceCounts[source] >= perSourceCap) continue;
+
+            selected.push(article);
+            selectedKeys.add(key);
+            sourceCounts[source]++;
+        }
+
+        // Pass 2: fill remaining slots by strict recency
+        if (selected.length < maxArticles) {
+            for (const article of sortedArticles) {
+                if (selected.length >= maxArticles) break;
+
+                const key = article.link || article.title || JSON.stringify(article);
+                if (selectedKeys.has(key)) continue;
+
+                selected.push(article);
+                selectedKeys.add(key);
+            }
+        }
+
+        return selected;
+    }
+
     async function fetchAllFeeds(feedsArray) {
         const results = await Promise.allSettled(
             feedsArray.map(f => fetchRssFeed(f.url, f.name, f.isBreaking))
         );
 
         let all = [];
+
         for (const result of results) {
             if (result.status === "fulfilled") {
                 all = all.concat(result.value);
@@ -688,15 +760,12 @@
         }
 
         all.sort((a, b) => {
-            // Valid dates first
             if (a.validDate && !b.validDate) return -1;
             if (!a.validDate && b.validDate) return 1;
 
-            // Newest to oldest
             const timeDiff = b.sortTimeMs - a.sortTimeMs;
             if (timeDiff !== 0) return timeDiff;
 
-            // Stable tie-breaker
             const tieA = a.link || a.title || '';
             const tieB = b.link || b.title || '';
             return tieA.localeCompare(tieB);
@@ -704,7 +773,10 @@
 
         all = dedupeArticles(all);
 
-        return all.slice(0, MAX_ARTICLES);
+        return {
+            allArticles: all,
+            selectedArticles: selectBalancedArticles(all, MAX_ARTICLES, SOFT_SOURCE_CAP)
+        };
     }
 
     // ============================================
@@ -739,7 +811,7 @@
     }
 
     // ============================================
-    // Render news
+    // Rendering
     // ============================================
     function renderNews(articles, containerId) {
         const container = document.getElementById(containerId);
@@ -816,7 +888,7 @@
         const tickerDiv = document.getElementById('tickerList');
         if (!tickerDiv) return;
 
-        const breaking = articles.filter(a => a.isBreaking).slice(0, 15);
+        const breaking = articles.filter(a => a.isBreaking).slice(0, TICKER_ITEMS);
 
         if (!breaking.length) {
             tickerDiv.innerHTML = '<span>No breaking news.</span>';
@@ -824,13 +896,14 @@
         }
 
         const items = [...breaking, ...breaking];
+
         tickerDiv.innerHTML = items.map(i => `
             <a href="${escapeAttribute(i.link)}" target="_blank" rel="noopener noreferrer">⚡ ${escapeHtml(i.title)}</a>
         `).join('');
     }
 
     // ============================================
-    // Load selected league with race-condition protection
+    // League loading
     // ============================================
     async function loadLeague(league) {
         const requestId = ++latestLoadRequestId;
@@ -840,13 +913,13 @@
 
         if (league === 'nba') {
             feeds = nbaFeeds;
-            title = 'NBA: Latest News & Rumors (12 most recent)';
+            title = 'NBA: Mixed News Feed (12 most recent, source-balanced)';
         } else if (league === 'nfl') {
             feeds = nflFeeds;
-            title = 'NFL: Latest News & Rumors (12 most recent)';
+            title = 'NFL: Mixed News Feed (12 most recent, source-balanced)';
         } else {
             feeds = ncaaFeeds;
-            title = 'College Athletics: D1.ticker · Coaches Wire · ESPN · NCAA (12 most recent)';
+            title = 'College Athletics: Mixed News Feed (12 most recent, source-balanced)';
         }
 
         const titleEl = document.getElementById('news-section-title');
@@ -855,28 +928,28 @@
         if (titleEl) titleEl.innerText = title;
         if (gridEl) gridEl.innerHTML = '<div class="loading">Loading...</div>';
 
-        const articles = await fetchAllFeeds(feeds);
+        const { allArticles, selectedArticles } = await fetchAllFeeds(feeds);
 
-        // Ignore stale responses if the user switched tabs quickly
         if (requestId !== latestLoadRequestId) return;
 
-        renderNews(articles, 'news-grid');
-        renderHero(articles);
-        renderTicker(articles);
+        renderNews(selectedArticles, 'news-grid');
+        renderHero(selectedArticles);
+        renderTicker(allArticles);
 
         // Optional debugging:
-        // console.table(articles.map(a => ({
+        // console.table(allArticles.map(a => ({
         //     source: a.source,
-        //     title: a.title.slice(0, 60),
+        //     title: a.title.slice(0, 70),
         //     rawPubDate: a.rawPubDate,
         //     parsedISO: a.pubDate ? a.pubDate.toISOString() : null,
         //     validDate: a.validDate,
-        //     dateReason: a.dateReason
+        //     dateReason: a.dateReason,
+        //     image: a.image || ''
         // })));
     }
 
     // ============================================
-    // Live scores and schedule
+    // Live scores & schedules
     // ============================================
     async function fetchAPI(url) {
         try {
@@ -1029,7 +1102,7 @@
     }
 
     // ============================================
-    // Tab switching
+    // Tabs
     // ============================================
     function showNewsTab() {
         document.getElementById('news-ticker-container').style.display = 'flex';
