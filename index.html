@@ -123,6 +123,16 @@
 
 <script>
     // ============================================
+    // Helper: Decode HTML entities in text
+    // ============================================
+    function decodeHtmlEntities(text) {
+        if (!text) return '';
+        const textarea = document.createElement('textarea');
+        textarea.innerHTML = text;
+        return textarea.value;
+    }
+
+    // ============================================
     // 1. NEWS FEEDS (NBA, NFL, NCAA)
     // ============================================
     const nbaFeeds = [
@@ -145,10 +155,12 @@
         { name: "NFL.com", url: "https://www.nfl.com/rss/partner.xml" }
     ];
 
-    // NCAA Feeds: D1.ticker (primary), Coaches Wire (coaching changes), NCAA.com backups
+    // NCAA Feeds: Added ESPN's official men's basketball and football feeds
     const ncaaFeeds = [
         { name: "🔥 D1.ticker", url: "https://rss.app/feeds/vq5iDi0CxkHkaACm.xml", isBreaking: true },
         { name: "🔥 Coaches Wire", url: "https://rss.app/feeds/zzrJ6NlGj2EmZW8x.xml", isBreaking: true },
+        { name: "ESPN College Basketball", url: "https://www.espn.com/espn/rss/ncb/news" }, // Official ESPN men's college basketball feed
+        { name: "ESPN College Football", url: "https://www.espn.com/espn/rss/ncf/news" },   // Official ESPN college football feed
         { name: "NCAA DI Men's Basketball", url: "https://www.ncaa.com/news/basketball-men/d1/rss.xml" },
         { name: "NCAA FBS Football", url: "https://www.ncaa.com/news/football/fbs/rss.xml" },
         { name: "NCAA DI Women's Basketball", url: "https://www.ncaa.com/news/basketball-women/d1/rss.xml" },
@@ -187,8 +199,10 @@
             if (data.status !== "ok" || !data.items) return [];
             return data.items.map(item => {
                 let pubDate = parseRssDate(item.pubDate);
+                // Decode HTML entities in title
+                let decodedTitle = decodeHtmlEntities(item.title || "No title");
                 return {
-                    title: item.title || "No title",
+                    title: decodedTitle,
                     link: item.link || "#",
                     pubDate: pubDate,
                     source: sourceName,
@@ -278,7 +292,7 @@
         let feeds, title;
         if (league === 'nba') { feeds = nbaFeeds; title = 'Latest from the Association'; }
         else if (league === 'nfl') { feeds = nflFeeds; title = 'Around the League'; }
-        else { feeds = ncaaFeeds; title = 'College Athletics (D1.ticker + Coaches Wire + NCAA)'; }
+        else { feeds = ncaaFeeds; title = 'College Athletics (D1.ticker + Coaches Wire + ESPN + NCAA)'; }
         
         document.getElementById('news-section-title').innerText = title;
         document.getElementById('news-grid').innerHTML = '<div class="loading">Loading...</div>';
