@@ -101,12 +101,12 @@
         <div class="vault-card"><h3>🏈 NFL Schedule (Today)</h3><button id="load-nfl-schedule">Load Today's NFL Games</button><div id="nfl-schedule-table"></div></div>
     </div>
 
-    <footer>All major sources: ESPN, Bleacher Report, Yahoo, RealGM, CBS, SI, NFL.com, NCAA.com, D1.ticker, Coaches Wire. Showing the 12 most recent stories (chronological).</footer>
+    <footer>All major sources: ESPN, Bleacher Report, Yahoo, RealGM, CBS, SI, NFL.com, NCAA.com, D1.ticker, Coaches Wire. Strict chronological order (12 most recent).</footer>
 </div>
 
 <script>
     // ============================================
-    // Helper: Robust HTML entity decoder (double pass)
+    // Helper: Robust HTML entity decoder
     // ============================================
     function decodeHtmlEntities(text) {
         if (!text) return '';
@@ -155,7 +155,7 @@
     ];
 
     const PROXY = "https://api.rss2json.com/v1/api.json?rss_url=";
-    const MAX_ARTICLES = 12;   // Show only the 12 most recent articles across all sources combined
+    const MAX_ARTICLES = 12;
 
     function getImageFromItem(item) {
         if (item.enclosure?.link) return item.enclosure.link;
@@ -163,17 +163,38 @@
         return null;
     }
 
+    // Deterministic date parser: never returns current time as fallback (to avoid random ordering)
     function parseRssDate(dateString) {
-        if (!dateString) return new Date();
+        if (!dateString) return new Date(0); // epoch
         let d = new Date(dateString);
-        if (isNaN(d.getTime())) {
-            d = new Date(Date.parse(dateString.replace(/([+-]\d{2}):(\d{2})$/, '$1$2')));
+        if (!isNaN(d.getTime()) && d.getTime() > 0) {
+            const now = new Date();
+            // Reject future dates (more than 1 hour ahead)
+            if (d > new Date(now.getTime() + 60 * 60 * 1000)) {
+                console.warn("Future date rejected, using fallback:", dateString);
+                return new Date(now.getTime() - 1000); // slightly in the past to maintain order
+            }
+            return d;
         }
-        if (isNaN(d.getTime())) return new Date();
-        const now = new Date();
-        // Reject dates more than 1 hour in the future (common in some feeds)
-        if (d > new Date(now.getTime() + 60 * 60 * 1000)) return now;
-        return d;
+        // Try removing timezone offset
+        let cleaned = dateString.replace(/([+-]\d{2}):(\d{2})$/, '$1$2');
+        d = new Date(cleaned);
+        if (!isNaN(d.getTime()) && d.getTime() > 0) {
+            const now = new Date();
+            if (d > new Date(now.getTime() + 60 * 60 * 1000)) return new Date(now.getTime() - 1000);
+            return d;
+        }
+        // Try parsing with Date.parse
+        let timestamp = Date.parse(dateString);
+        if (!isNaN(timestamp) && timestamp > 0) {
+            d = new Date(timestamp);
+            const now = new Date();
+            if (d > new Date(now.getTime() + 60 * 60 * 1000)) return new Date(now.getTime() - 1000);
+            return d;
+        }
+        // Last resort: use a fixed past date (so ordering is deterministic)
+        console.warn("Could not parse date, using fixed fallback:", dateString);
+        return new Date(0);
     }
 
     async function fetchRssFeed(feedUrl, sourceName, isBreaking = false) {
@@ -201,14 +222,24 @@
         const results = await Promise.allSettled(feedsArray.map(f => fetchRssFeed(f.url, f.name, f.isBreaking)));
         let all = [];
         for (let r of results) if (r.status === "fulfilled") all = all.concat(r.value);
-        // Sort by date descending (newest first)
-        all.sort((a, b) => b.pubDate - a.pubDate);
-        // Take only the top MAX_ARTICLES (12 most recent overall)
+        // Stable sort: primary by pubDate descending, secondary by link (or title) to ensure deterministic order
+        all.sort((a, b) => {
+            const timeDiff = b.pubDate - a.pubDate;
+            if (timeDiff !== 0) return timeDiff;
+            // If timestamps are equal, sort by link or title to keep order consistent
+            const linkA = a.link || a.title;
+            const linkB = b.link || b.title;
+            return linkA.localeCompare(linkB);
+        });
         return all.slice(0, MAX_ARTICLES);
     }
 
-    function formatFullDateTime(d) { return d.toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'short'}); }
+    function formatFullDateTime(d) {
+        if (d.getTime() === 0) return "Unknown date";
+        return d.toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
+    }
     function formatRelativeTime(d) {
+        if (d.getTime() === 0) return "unknown";
         const diff = Math.floor((new Date()-d)/60000);
         if (diff<1) return "just now";
         if (diff<60) return `${diff} min ago`;
