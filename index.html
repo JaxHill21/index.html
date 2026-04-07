@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Scoop | NBA & NFL News + Live Scores</title>
+    <title>The Scoop | NBA · NFL · NCAA News + Live Scores</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #0a0c10; color: #eef2ff; line-height: 1.5; }
@@ -56,10 +56,6 @@
         .vault-card select, .vault-card input, .vault-card button { background: #1e293b; border: 1px solid #334155; color: white; padding: 8px 12px; border-radius: 8px; margin-right: 10px; margin-bottom: 10px; font-size: 0.9rem; }
         .vault-card button { background: #3b82f6; cursor: pointer; transition: all 0.2s; }
         .vault-card button:hover { background: #2563eb; transform: translateY(-1px); }
-        .data-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; }
-        .data-table th, .data-table td { text-align: left; padding: 10px; border-bottom: 1px solid #1f2937; }
-        .data-table th { color: #9ca3af; font-weight: 600; }
-        .data-table tr:hover { background: #1e293b; }
         .game-card { background: #1e293b; border-radius: 12px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; }
         .game-card:hover { background: #2d3748; transform: translateX(5px); }
         .team-stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
@@ -74,7 +70,7 @@
 <body>
 <div class="container">
     <div class="site-header">
-        <div class="logo"><h1>THE SCOOP</h1><p>NBA · NFL · NCAA</p></div>
+        <div class="logo"><h1>THE SCOOP</h1><p>NBA · NFL · NCAA · Live Scores</p></div>
         <div class="nav-tabs">
             <button class="tab-btn active" data-tab="nba">NBA</button>
             <button class="tab-btn" data-tab="nfl">NFL</button>
@@ -83,7 +79,7 @@
         </div>
     </div>
 
-    <!-- News section for NBA, NFL, and NCAA -->
+    <!-- News section -->
     <div id="news-ticker-container" class="ticker-container" style="display: flex;">
         <div class="ticker-label">BREAKING</div>
         <div class="ticker-content"><div class="ticker-scroll" id="tickerList">Loading...</div></div>
@@ -92,11 +88,10 @@
     <div id="news-section-title" class="section-title">Latest from the Association</div>
     <div id="news-grid" class="news-grid">Loading news...</div>
 
-    <!-- Live Scores & Schedule Hub (formerly Data Vault) -->
+    <!-- Live Scores & Schedule Hub -->
     <div id="scores-pane" class="tab-pane" style="display: none;">
         <div class="section-title">Live Scores & Schedule Hub</div>
         
-        <!-- Today's Games & Live Box Scores -->
         <div class="vault-card">
             <h3>📋 Today's Games & Live Box Scores</h3>
             <select id="league-selector">
@@ -110,26 +105,25 @@
             <div id="boxscore-content"></div>
         </div>
 
-        <!-- Dedicated League Schedules -->
         <div class="vault-card">
-            <h3>🏀 NBA Schedule</h3>
+            <h3>🏀 NBA Schedule (Today)</h3>
             <button id="load-nba-schedule">Load Today's NBA Games</button>
             <div id="nba-schedule-table">Click to load today's NBA schedule.</div>
         </div>
 
         <div class="vault-card">
-            <h3>🏈 NFL Schedule</h3>
+            <h3>🏈 NFL Schedule (Today)</h3>
             <button id="load-nfl-schedule">Load Today's NFL Games</button>
             <div id="nfl-schedule-table">Click to load today's NFL schedule.</div>
         </div>
     </div>
 
-    <footer>News: ESPN, Bleacher Report, Yahoo, RealGM, CBS, SI, NFL.com, NCAA + Shams (NBA) / Schefter (NFL).<br>Live Scores: ESPN public APIs. Max 12 unique news stories per league.</footer>
+    <footer>News: ESPN, Bleacher Report, Yahoo, RealGM, CBS, SI, NFL.com, NCAA, D1.ticker, Coaches Wire. Live Scores via ESPN APIs. Max 12 unique stories per league.</footer>
 </div>
 
 <script>
     // ============================================
-    // 1. NEWS MODULE (with article cap = 12)
+    // 1. NEWS FEEDS (NBA, NFL, NCAA)
     // ============================================
     const nbaFeeds = [
         { name: "🔥 Shams Breaking News", url: "https://rss.app/feeds/KSP50yB3sPn7wSyp.xml", isBreaking: true },
@@ -140,6 +134,7 @@
         { name: "CBS Sports NBA", url: "https://www.cbssports.com/nba/rss/headlines" },
         { name: "Sports Illustrated NBA", url: "https://www.si.com/rss/nba.rss" }
     ];
+
     const nflFeeds = [
         { name: "🔥 Adam Schefter Breaking News", url: "https://rss.app/feeds/hAcUsz9WSpqcLFsq.xml", isBreaking: true },
         { name: "ESPN NFL", url: "https://www.espn.com/espn/rss/nfl/news" },
@@ -149,8 +144,11 @@
         { name: "CBS Sports NFL", url: "https://www.cbssports.com/nfl/rss/headlines" },
         { name: "NFL.com", url: "https://www.nfl.com/rss/partner.xml" }
     ];
-    // NCAA Feeds (DI Men's Basketball, FBS Football, etc.)
+
+    // NCAA Feeds: D1.ticker (primary), Coaches Wire (coaching changes), NCAA.com backups
     const ncaaFeeds = [
+        { name: "🔥 D1.ticker", url: "https://rss.app/feeds/vq5iDi0CxkHkaACm.xml", isBreaking: true },
+        { name: "🔥 Coaches Wire", url: "https://rss.app/feeds/zzrJ6NlGj2EmZW8x.xml", isBreaking: true },
         { name: "NCAA DI Men's Basketball", url: "https://www.ncaa.com/news/basketball-men/d1/rss.xml" },
         { name: "NCAA FBS Football", url: "https://www.ncaa.com/news/football/fbs/rss.xml" },
         { name: "NCAA DI Women's Basketball", url: "https://www.ncaa.com/news/basketball-women/d1/rss.xml" },
@@ -174,7 +172,6 @@
             d = new Date(Date.parse(dateString.replace(/([+-]\d{2}):(\d{2})$/, '$1$2')));
         }
         if (isNaN(d.getTime())) return new Date();
-        // If the date is more than 1 hour in the future, treat as invalid (fallback to now)
         const now = new Date();
         if (d > new Date(now.getTime() + 60 * 60 * 1000)) {
             console.warn("Future date detected, using current time:", dateString);
@@ -281,7 +278,7 @@
         let feeds, title;
         if (league === 'nba') { feeds = nbaFeeds; title = 'Latest from the Association'; }
         else if (league === 'nfl') { feeds = nflFeeds; title = 'Around the League'; }
-        else { feeds = ncaaFeeds; title = 'College Sports News'; }
+        else { feeds = ncaaFeeds; title = 'College Athletics (D1.ticker + Coaches Wire + NCAA)'; }
         
         document.getElementById('news-section-title').innerText = title;
         document.getElementById('news-grid').innerHTML = '<div class="loading">Loading...</div>';
@@ -302,7 +299,6 @@
         } catch(e) { console.error(url,e); return null; }
     }
 
-    // Today's Games & Box Scores (NBA/NFL)
     async function loadGames(league) {
         const container = document.getElementById('games-list');
         container.innerHTML = '<div class="loading-spinner">Loading games...</div>';
@@ -345,7 +341,6 @@
         boxContent.innerHTML = html;
     }
 
-    // Dedicated Schedule Loaders
     async function loadNBASchedule() {
         const container = document.getElementById('nba-schedule-table');
         container.innerHTML = '<div class="loading-spinner">Loading schedule...</div>';
@@ -413,12 +408,12 @@
         });
     }
     
-    // Event listeners for the new scoreboard buttons
+    // Event listeners for scoreboard buttons
     document.getElementById('league-selector')?.addEventListener('change', e => loadGames(e.target.value));
     document.getElementById('load-nba-schedule')?.addEventListener('click', loadNBASchedule);
     document.getElementById('load-nfl-schedule')?.addEventListener('click', loadNFLSchedule);
 
-    // Initialize the dashboard with NBA news
+    // Start with NBA news
     showNewsTab();
     loadLeague('nba');
     initTabs();
