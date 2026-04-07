@@ -1,76 +1,436 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>The Scoop | NBA · NFL · NCAA News + Live Scores</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #0a0c10; color: #eef2ff; line-height: 1.5; }
-        .container { max-width: 1400px; margin: 0 auto; padding: 20px 30px; }
-        .site-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #1f2937; }
-        .logo h1 { font-size: 1.8rem; font-weight: 700; background: linear-gradient(135deg, #fff, #3b82f6); -webkit-background-clip: text; background-clip: text; color: transparent; letter-spacing: -0.5px; }
-        .logo p { font-size: 0.8rem; color: #6b7280; }
-        .nav-tabs { display: flex; gap: 15px; background: #111827; padding: 6px; border-radius: 60px; }
-        .tab-btn { background: transparent; border: none; padding: 10px 28px; font-size: 1rem; font-weight: 600; border-radius: 40px; cursor: pointer; transition: all 0.2s ease; color: #9ca3af; }
-        .tab-btn.active { background: #3b82f6; color: white; box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
-        .ticker-container { background: #111827; border-radius: 16px; margin-bottom: 40px; padding: 0 20px; display: flex; align-items: center; border-left: 5px solid #ef4444; }
-        .ticker-label { background: #ef4444; color: white; font-weight: 800; padding: 8px 18px; border-radius: 40px; font-size: 0.8rem; letter-spacing: 1px; margin-right: 20px; }
-        .ticker-content { flex: 1; overflow: hidden; white-space: nowrap; padding: 14px 0; }
-        .ticker-scroll { display: inline-block; white-space: nowrap; animation: scrollTicker 100s linear infinite; }
-        .ticker-scroll:hover { animation-play-state: paused; }
-        .ticker-scroll a { color: #e2e8f0; text-decoration: none; margin-right: 40px; font-size: 0.95rem; transition: color 0.2s; }
-        .ticker-scroll a:hover { color: #3b82f6; text-decoration: underline; }
-        @keyframes scrollTicker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-        .hero { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; margin-bottom: 50px; }
-        .hero-main { background: #111827; border-radius: 28px; overflow: hidden; transition: transform 0.2s; }
-        .hero-main:hover { transform: translateY(-5px); }
-        .hero-img { background: #1e293b; height: 280px; background-size: cover; background-position: center; }
-        .hero-text { padding: 25px; }
-        .hero-category { color: #3b82f6; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 10px; }
-        .hero-text h2 { font-size: 1.8rem; margin-bottom: 15px; line-height: 1.2; }
-        .hero-text a { color: white; text-decoration: none; }
-        .hero-text a:hover { text-decoration: underline; }
-        .hero-side { display: flex; flex-direction: column; gap: 20px; }
-        .side-card { background: #111827; border-radius: 24px; padding: 20px; display: flex; gap: 15px; align-items: center; }
-        .side-img { width: 60px; height: 60px; background: #1e293b; border-radius: 12px; background-size: cover; background-position: center; flex-shrink: 0; }
-        .side-content h4 { font-size: 1rem; margin-bottom: 5px; }
-        .side-content p { color: #9ca3af; font-size: 0.8rem; }
-        .section-title { font-size: 1.5rem; margin: 40px 0 20px 0; padding-left: 12px; border-left: 4px solid #3b82f6; }
-        .news-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
-        .news-card { background: #111827; border-radius: 20px; overflow: hidden; transition: all 0.2s ease; border: 1px solid #1f2937; }
-        .news-card:hover { transform: translateY(-4px); border-color: #3b82f6; box-shadow: 0 20px 25px -12px rgba(0,0,0,0.5); }
-        .card-img { width: 100%; height: 180px; background-size: cover; background-position: center; background-color: #1e293b; }
-        .card-content { padding: 20px; }
-        .news-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; line-height: 1.4; }
-        .news-title a { text-decoration: none; color: #f3f4f6; font-weight: 600; }
-        .news-title a:hover { color: #60a5fa; text-decoration: underline; }
-        .news-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; font-size: 0.75rem; color: #6b7280; flex-wrap: wrap; gap: 8px; }
-        .source { background: #1e293b; padding: 4px 12px; border-radius: 30px; font-weight: 500; }
-        .source-breaking { background: #ef4444; color: white; }
-        .datetime { font-family: monospace; font-size: 0.7rem; }
-        .loading, .error { text-align: center; padding: 60px; background: #111827; border-radius: 24px; }
-        footer { margin-top: 60px; text-align: center; font-size: 0.75rem; color: #4b5563; border-top: 1px solid #1f2937; padding-top: 30px; }
-        .vault-card { background: #111827; border-radius: 20px; padding: 20px; margin-bottom: 30px; border: 1px solid #1f2937; }
-        .vault-card h3 { margin-bottom: 15px; color: #3b82f6; font-size: 1.3rem; }
-        .vault-card select, .vault-card input, .vault-card button { background: #1e293b; border: 1px solid #334155; color: white; padding: 8px 12px; border-radius: 8px; margin-right: 10px; margin-bottom: 10px; font-size: 0.9rem; }
-        .vault-card button { background: #3b82f6; cursor: pointer; transition: all 0.2s; }
-        .vault-card button:hover { background: #2563eb; transform: translateY(-1px); }
-        .game-card { background: #1e293b; border-radius: 12px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; }
-        .game-card:hover { background: #2d3748; transform: translateX(5px); }
-        .team-stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
-        .stat-item { background: #1e293b; padding: 10px; border-radius: 8px; text-align: center; }
-        .stat-label { font-size: 0.7rem; color: #9ca3af; text-transform: uppercase; }
-        .stat-value { font-size: 1.2rem; font-weight: bold; color: #3b82f6; }
-        .loading-spinner { text-align: center; padding: 20px; color: #9ca3af; }
-        .error-message { color: #ef4444; padding: 10px; background: #1e293b; border-radius: 8px; margin-top: 10px; }
-        @media (max-width: 900px) { .hero { grid-template-columns: 1fr; } .container { padding: 15px; } }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #0a0c10;
+            color: #eef2ff;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px 30px;
+        }
+
+        .site-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #1f2937;
+        }
+
+        .logo h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, #3b82f6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .logo p {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 15px;
+            background: #111827;
+            padding: 6px;
+            border-radius: 60px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 10px 28px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #9ca3af;
+        }
+
+        .tab-btn.active {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+        }
+
+        .ticker-container {
+            background: #111827;
+            border-radius: 16px;
+            margin-bottom: 40px;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            border-left: 5px solid #ef4444;
+        }
+
+        .ticker-label {
+            background: #ef4444;
+            color: white;
+            font-weight: 800;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            margin-right: 20px;
+        }
+
+        .ticker-content {
+            flex: 1;
+            overflow: hidden;
+            white-space: nowrap;
+            padding: 14px 0;
+        }
+
+        .ticker-scroll {
+            display: inline-block;
+            white-space: nowrap;
+            animation: scrollTicker 100s linear infinite;
+        }
+
+        .ticker-scroll:hover {
+            animation-play-state: paused;
+        }
+
+        .ticker-scroll a {
+            color: #e2e8f0;
+            text-decoration: none;
+            margin-right: 40px;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .ticker-scroll a:hover {
+            color: #3b82f6;
+            text-decoration: underline;
+        }
+
+        @keyframes scrollTicker {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .hero-main {
+            background: #111827;
+            border-radius: 28px;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+
+        .hero-main:hover {
+            transform: translateY(-5px);
+        }
+
+        .hero-img {
+            background: #1e293b;
+            height: 280px;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .hero-text {
+            padding: 25px;
+        }
+
+        .hero-category {
+            color: #3b82f6;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .hero-text h2 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            line-height: 1.2;
+        }
+
+        .hero-text a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .hero-text a:hover {
+            text-decoration: underline;
+        }
+
+        .hero-side {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .side-card {
+            background: #111827;
+            border-radius: 24px;
+            padding: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .side-img {
+            width: 60px;
+            height: 60px;
+            background: #1e293b;
+            border-radius: 12px;
+            background-size: cover;
+            background-position: center;
+            flex-shrink: 0;
+        }
+
+        .side-content h4 {
+            font-size: 1rem;
+            margin-bottom: 5px;
+        }
+
+        .side-content h4 a {
+            color: #f3f4f6;
+            text-decoration: none;
+        }
+
+        .side-content h4 a:hover {
+            color: #60a5fa;
+            text-decoration: underline;
+        }
+
+        .side-content p {
+            color: #9ca3af;
+            font-size: 0.8rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin: 40px 0 20px 0;
+            padding-left: 12px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+        }
+
+        .news-card {
+            background: #111827;
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            border: 1px solid #1f2937;
+        }
+
+        .news-card:hover {
+            transform: translateY(-4px);
+            border-color: #3b82f6;
+            box-shadow: 0 20px 25px -12px rgba(0,0,0,0.5);
+        }
+
+        .card-img {
+            width: 100%;
+            height: 180px;
+            background-size: cover;
+            background-position: center;
+            background-color: #1e293b;
+        }
+
+        .card-content {
+            padding: 20px;
+        }
+
+        .news-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .news-title a {
+            text-decoration: none;
+            color: #f3f4f6;
+            font-weight: 600;
+        }
+
+        .news-title a:hover {
+            color: #60a5fa;
+            text-decoration: underline;
+        }
+
+        .news-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            font-size: 0.75rem;
+            color: #6b7280;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .source {
+            background: #1e293b;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-weight: 500;
+        }
+
+        .source-breaking {
+            background: #ef4444;
+            color: white;
+        }
+
+        .datetime {
+            font-family: monospace;
+            font-size: 0.7rem;
+        }
+
+        .loading,
+        .error {
+            text-align: center;
+            padding: 60px;
+            background: #111827;
+            border-radius: 24px;
+        }
+
+        footer {
+            margin-top: 60px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #4b5563;
+            border-top: 1px solid #1f2937;
+            padding-top: 30px;
+        }
+
+        .vault-card {
+            background: #111827;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 1px solid #1f2937;
+        }
+
+        .vault-card h3 {
+            margin-bottom: 15px;
+            color: #3b82f6;
+            font-size: 1.3rem;
+        }
+
+        .vault-card select,
+        .vault-card input,
+        .vault-card button {
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .vault-card button {
+            background: #3b82f6;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .vault-card button:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        .game-card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .game-card:hover {
+            background: #2d3748;
+            transform: translateX(5px);
+        }
+
+        .team-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            background: #1e293b;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: #9ca3af;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #3b82f6;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 20px;
+            color: #9ca3af;
+        }
+
+        .error-message {
+            color: #ef4444;
+            padding: 10px;
+            background: #1e293b;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 900px) {
+            .hero { grid-template-columns: 1fr; }
+            .container { padding: 15px; }
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="site-header">
-        <div class="logo"><h1>THE SCOOP</h1><p>NBA · NFL · NCAA · Live Scores</p></div>
+        <div class="logo">
+            <h1>THE SCOOP</h1>
+            <p>NBA · NFL · NCAA · Live Scores</p>
+        </div>
         <div class="nav-tabs">
             <button class="tab-btn active" data-tab="nba">NBA</button>
             <button class="tab-btn" data-tab="nfl">NFL</button>
@@ -79,34 +439,56 @@
         </div>
     </div>
 
-    <!-- News section -->
     <div id="news-ticker-container" class="ticker-container" style="display: flex;">
         <div class="ticker-label">BREAKING</div>
-        <div class="ticker-content"><div class="ticker-scroll" id="tickerList">Loading...</div></div>
+        <div class="ticker-content">
+            <div class="ticker-scroll" id="tickerList">Loading...</div>
+        </div>
     </div>
+
     <div id="news-hero" class="hero"></div>
     <div id="news-section-title" class="section-title">Latest from the Association</div>
     <div id="news-grid" class="news-grid">Loading news...</div>
 
-    <!-- Live Scores & Schedule Hub -->
     <div id="scores-pane" class="tab-pane" style="display: none;">
         <div class="section-title">Live Scores & Schedule Hub</div>
+
         <div class="vault-card">
             <h3>📋 Today's Games & Live Box Scores</h3>
-            <select id="league-selector"><option value="nba">NBA</option><option value="nfl">NFL</option></select>
+            <select id="league-selector">
+                <option value="nba">NBA</option>
+                <option value="nfl">NFL</option>
+            </select>
             <div id="games-list">Select a league to view today's games.</div>
         </div>
-        <div id="boxscore-container" class="vault-card" style="display: none;"><h3>Box Score</h3><div id="boxscore-content"></div></div>
-        <div class="vault-card"><h3>🏀 NBA Schedule (Today)</h3><button id="load-nba-schedule">Load Today's NBA Games</button><div id="nba-schedule-table"></div></div>
-        <div class="vault-card"><h3>🏈 NFL Schedule (Today)</h3><button id="load-nfl-schedule">Load Today's NFL Games</button><div id="nfl-schedule-table"></div></div>
+
+        <div id="boxscore-container" class="vault-card" style="display: none;">
+            <h3>Box Score</h3>
+            <div id="boxscore-content"></div>
+        </div>
+
+        <div class="vault-card">
+            <h3>🏀 NBA Schedule (Today)</h3>
+            <button id="load-nba-schedule">Load Today's NBA Games</button>
+            <div id="nba-schedule-table"></div>
+        </div>
+
+        <div class="vault-card">
+            <h3>🏈 NFL Schedule (Today)</h3>
+            <button id="load-nfl-schedule">Load Today's NFL Games</button>
+            <div id="nfl-schedule-table"></div>
+        </div>
     </div>
 
-    <footer>All major sources: ESPN, Bleacher Report, Yahoo, RealGM, CBS, SI, NFL.com, NCAA.com, D1.ticker, Coaches Wire. Strict chronological order (12 most recent).</footer>
+    <footer>
+        All major sources: ESPN, Bleacher Report, Yahoo, RealGM, CBS, SI, NFL.com, NCAA.com, D1.ticker, Coaches Wire.
+        Articles are sorted newest to oldest using only valid parsed publish timestamps.
+    </footer>
 </div>
 
 <script>
     // ============================================
-    // Helper: Robust HTML entity decoder
+    // Helper functions
     // ============================================
     function decodeHtmlEntities(text) {
         if (!text) return '';
@@ -116,12 +498,40 @@
         decoded = textarea.value;
         textarea.innerHTML = decoded;
         decoded = textarea.value;
-        decoded = decoded.replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+        decoded = decoded
+            .replace(/&#39;/g, "'")
+            .replace(/&amp;/g, '&')
+            .replace(/&quot;/g, '"')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>');
         return decoded;
     }
 
+    function escapeHtml(str) {
+        return String(str || '').replace(/[&<>]/g, m => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;'
+        }[m]));
+    }
+
+    function escapeAttribute(str) {
+        return String(str || '').replace(/"/g, '&quot;');
+    }
+
+    function getImageFromItem(item) {
+        if (item.enclosure && item.enclosure.link) return item.enclosure.link;
+        if (item.thumbnail) return item.thumbnail;
+        return null;
+    }
+
+    function backgroundStyle(url) {
+        if (!url) return 'background-color:#1e293b;';
+        return `background-image: url("${escapeAttribute(url)}"); background-size: cover; background-position: center;`;
+    }
+
     // ============================================
-    // 1. NEWS FEEDS - ALL SOURCES
+    // RSS Feeds
     // ============================================
     const nbaFeeds = [
         { name: "🔥 Shams Breaking News", url: "https://rss.app/feeds/KSP50yB3sPn7wSyp.xml", isBreaking: true },
@@ -156,236 +566,470 @@
 
     const PROXY = "https://api.rss2json.com/v1/api.json?rss_url=";
     const MAX_ARTICLES = 12;
+    let latestLoadRequestId = 0;
 
-    function getImageFromItem(item) {
-        if (item.enclosure?.link) return item.enclosure.link;
-        if (item.thumbnail) return item.thumbnail;
-        return null;
-    }
-
-    // Deterministic date parser: never returns current time as fallback (to avoid random ordering)
+    // ============================================
+    // Date parsing and normalization
+    // ============================================
     function parseRssDate(dateString) {
-        if (!dateString) return new Date(0); // epoch
-        let d = new Date(dateString);
-        if (!isNaN(d.getTime()) && d.getTime() > 0) {
-            const now = new Date();
-            // Reject future dates (more than 1 hour ahead)
-            if (d > new Date(now.getTime() + 60 * 60 * 1000)) {
-                console.warn("Future date rejected, using fallback:", dateString);
-                return new Date(now.getTime() - 1000); // slightly in the past to maintain order
+        if (!dateString || typeof dateString !== 'string') {
+            return { date: null, raw: dateString || '', valid: false, reason: 'missing' };
+        }
+
+        const raw = dateString.trim();
+        const candidates = [];
+        const seen = new Set();
+
+        function addCandidate(value) {
+            if (!value || seen.has(value)) return;
+            seen.add(value);
+            candidates.push(value);
+        }
+
+        addCandidate(raw);
+
+        // Example: 2026-04-07 14:32:00  -> force UTC for deterministic handling
+        if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(raw)) {
+            addCandidate(raw.replace(' ', 'T') + 'Z');
+        }
+
+        // Example: 2026-04-07T14:32:00 -> force UTC if timezone is missing
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(raw)) {
+            addCandidate(raw + 'Z');
+        }
+
+        // Example: +00:00 -> +0000 for older parsers
+        addCandidate(raw.replace(/([+-]\d{2}):(\d{2})$/, '$1$2'));
+
+        let parsed = null;
+
+        for (const candidate of candidates) {
+            const d = new Date(candidate);
+            if (!isNaN(d.getTime())) {
+                parsed = d;
+                break;
             }
-            return d;
         }
-        // Try removing timezone offset
-        let cleaned = dateString.replace(/([+-]\d{2}):(\d{2})$/, '$1$2');
-        d = new Date(cleaned);
-        if (!isNaN(d.getTime()) && d.getTime() > 0) {
-            const now = new Date();
-            if (d > new Date(now.getTime() + 60 * 60 * 1000)) return new Date(now.getTime() - 1000);
-            return d;
+
+        if (!parsed) {
+            return { date: null, raw, valid: false, reason: 'unparseable' };
         }
-        // Try parsing with Date.parse
-        let timestamp = Date.parse(dateString);
-        if (!isNaN(timestamp) && timestamp > 0) {
-            d = new Date(timestamp);
-            const now = new Date();
-            if (d > new Date(now.getTime() + 60 * 60 * 1000)) return new Date(now.getTime() - 1000);
-            return d;
+
+        const now = Date.now();
+        const futureToleranceMs = 60 * 60 * 1000; // 1 hour
+
+        if (parsed.getTime() > now + futureToleranceMs) {
+            return { date: null, raw, valid: false, reason: 'future_outlier' };
         }
-        // Last resort: use a fixed past date (so ordering is deterministic)
-        console.warn("Could not parse date, using fixed fallback:", dateString);
-        return new Date(0);
+
+        return { date: parsed, raw, valid: true, reason: 'ok' };
     }
 
+    // ============================================
+    // Fetch and normalize feeds
+    // ============================================
     async function fetchRssFeed(feedUrl, sourceName, isBreaking = false) {
         try {
             const res = await fetch(`${PROXY}${encodeURIComponent(feedUrl)}`);
             const data = await res.json();
+
             if (data.status !== "ok" || !data.items) return [];
+
             return data.items.map(item => {
-                let pubDate = parseRssDate(item.pubDate);
-                let rawTitle = item.title || "No title";
-                let decodedTitle = decodeHtmlEntities(rawTitle);
+                const rawDate = item.pubDate || item.isoDate || item.published || '';
+                const parsed = parseRssDate(rawDate);
+
                 return {
-                    title: decodedTitle,
+                    title: decodeHtmlEntities(item.title || "No title"),
                     link: item.link || "#",
-                    pubDate: pubDate,
+                    pubDate: parsed.date,
+                    rawPubDate: parsed.raw,
+                    validDate: parsed.valid,
+                    dateReason: parsed.reason,
+                    sortTimeMs: parsed.valid && parsed.date ? parsed.date.getTime() : Number.NEGATIVE_INFINITY,
                     source: sourceName,
-                    isBreaking: isBreaking,
+                    isBreaking,
                     image: getImageFromItem(item)
                 };
             });
-        } catch (err) { return []; }
+        } catch (err) {
+            return [];
+        }
+    }
+
+    function dedupeArticles(items) {
+        const seen = new Set();
+        const output = [];
+
+        for (const item of items) {
+            const normalizedTitle = (item.title || '').toLowerCase().replace(/\s+/g, ' ').trim();
+            const key = item.link && item.link !== '#'
+                ? `link:${item.link}`
+                : `title:${normalizedTitle}`;
+
+            if (seen.has(key)) continue;
+            seen.add(key);
+            output.push(item);
+        }
+
+        return output;
     }
 
     async function fetchAllFeeds(feedsArray) {
-        const results = await Promise.allSettled(feedsArray.map(f => fetchRssFeed(f.url, f.name, f.isBreaking)));
+        const results = await Promise.allSettled(
+            feedsArray.map(f => fetchRssFeed(f.url, f.name, f.isBreaking))
+        );
+
         let all = [];
-        for (let r of results) if (r.status === "fulfilled") all = all.concat(r.value);
-        // Stable sort: primary by pubDate descending, secondary by link (or title) to ensure deterministic order
+        for (const result of results) {
+            if (result.status === "fulfilled") {
+                all = all.concat(result.value);
+            }
+        }
+
         all.sort((a, b) => {
-            const timeDiff = b.pubDate - a.pubDate;
+            // Valid dates first
+            if (a.validDate && !b.validDate) return -1;
+            if (!a.validDate && b.validDate) return 1;
+
+            // Newest to oldest
+            const timeDiff = b.sortTimeMs - a.sortTimeMs;
             if (timeDiff !== 0) return timeDiff;
-            // If timestamps are equal, sort by link or title to keep order consistent
-            const linkA = a.link || a.title;
-            const linkB = b.link || b.title;
-            return linkA.localeCompare(linkB);
+
+            // Stable tie-breaker
+            const tieA = a.link || a.title || '';
+            const tieB = b.link || b.title || '';
+            return tieA.localeCompare(tieB);
         });
+
+        all = dedupeArticles(all);
+
         return all.slice(0, MAX_ARTICLES);
     }
 
-    function formatFullDateTime(d) {
-        if (d.getTime() === 0) return "Unknown date";
-        return d.toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
-    }
-    function formatRelativeTime(d) {
-        if (d.getTime() === 0) return "unknown";
-        const diff = Math.floor((new Date()-d)/60000);
-        if (diff<1) return "just now";
-        if (diff<60) return `${diff} min ago`;
-        if (diff<1440) return `${Math.floor(diff/60)} hours ago`;
-        return d.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+    // ============================================
+    // Date display
+    // ============================================
+    function formatFullDateTime(d, validDate) {
+        if (!validDate || !d) return "Date unavailable";
+
+        return d.toLocaleString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZoneName: 'short'
+        });
     }
 
+    function formatRelativeTime(d, validDate) {
+        if (!validDate || !d) return "unknown";
+
+        const diffMinutes = Math.floor((Date.now() - d.getTime()) / 60000);
+
+        if (diffMinutes < 1) return "just now";
+        if (diffMinutes < 60) return `${diffMinutes} min ago`;
+        if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)} hours ago`;
+
+        return d.toLocaleDateString(undefined, {
+            month: 'short',
+            day: 'numeric'
+        });
+    }
+
+    // ============================================
+    // Render news
+    // ============================================
     function renderNews(articles, containerId) {
         const container = document.getElementById(containerId);
         if (!container) return;
-        if (!articles.length) { container.innerHTML='<div class="error">No articles.</div>'; return; }
-        container.innerHTML = articles.map(a=>`
+
+        if (!articles.length) {
+            container.innerHTML = '<div class="error">No articles found.</div>';
+            return;
+        }
+
+        container.innerHTML = articles.map(a => `
             <div class="news-card">
-                ${a.image ? `<div class="card-img" style="background-image: url(${a.image});"></div>` : ''}
+                ${a.image ? `<div class="card-img" style="${backgroundStyle(a.image)}"></div>` : ''}
                 <div class="card-content">
-                    <div class="news-title"><a href="${a.link}" target="_blank">${escapeHtml(a.title)}</a></div>
-                    <div class="news-meta"><span class="source ${a.isBreaking?'source-breaking':''}">${escapeHtml(a.source)}</span><span class="datetime">${formatRelativeTime(a.pubDate)}</span></div>
-                    <div class="datetime" style="font-size:0.7rem;margin-top:8px;color:#6b7280;">${formatFullDateTime(a.pubDate)}</div>
+                    <div class="news-title">
+                        <a href="${escapeAttribute(a.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(a.title)}</a>
+                    </div>
+                    <div class="news-meta">
+                        <span class="source ${a.isBreaking ? 'source-breaking' : ''}">${escapeHtml(a.source)}</span>
+                        <span class="datetime">${formatRelativeTime(a.pubDate, a.validDate)}</span>
+                    </div>
+                    <div class="datetime" style="font-size:0.7rem;margin-top:8px;color:#6b7280;">
+                        ${formatFullDateTime(a.pubDate, a.validDate)}
+                    </div>
                 </div>
             </div>
         `).join('');
     }
+
     function renderHero(articles) {
         const heroDiv = document.getElementById('news-hero');
-        if (!heroDiv || !articles.length) { heroDiv.innerHTML=''; return; }
-        const top3 = articles.slice(0,3);
-        const main = top3[0], sides = top3.slice(1);
+        if (!heroDiv) return;
+
+        if (!articles.length) {
+            heroDiv.innerHTML = '';
+            return;
+        }
+
+        const top3 = articles.slice(0, 3);
+        const main = top3[0];
+        const sides = top3.slice(1);
+
         heroDiv.innerHTML = `
             <div class="hero-main">
-                <div class="hero-img" style="${main.image ? `background-image: url(${main.image});` : 'background-color:#1e293b;'}"></div>
-                <div class="hero-text"><div class="hero-category">${escapeHtml(main.source)}</div><h2><a href="${main.link}" target="_blank">${escapeHtml(main.title)}</a></h2><div class="datetime" style="margin-top:10px;">${formatFullDateTime(main.pubDate)}</div></div>
+                <div class="hero-img" style="${backgroundStyle(main.image)}"></div>
+                <div class="hero-text">
+                    <div class="hero-category">${escapeHtml(main.source)}</div>
+                    <h2>
+                        <a href="${escapeAttribute(main.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(main.title)}</a>
+                    </h2>
+                    <div class="datetime" style="margin-top:10px;">
+                        ${formatFullDateTime(main.pubDate, main.validDate)}
+                    </div>
+                </div>
             </div>
-            <div class="hero-side">${sides.map(s=>`<div class="side-card"><div class="side-img" style="${s.image ? `background-image: url(${s.image});` : 'background-color:#1e293b;'}"></div><div class="side-content"><h4><a href="${s.link}" target="_blank">${escapeHtml(s.title)}</a></h4><p>${escapeHtml(s.source)} • ${formatRelativeTime(s.pubDate)}</p><p style="font-size:0.7rem;">${formatFullDateTime(s.pubDate)}</p></div></div>`).join('')}</div>
+            <div class="hero-side">
+                ${sides.map(s => `
+                    <div class="side-card">
+                        <div class="side-img" style="${backgroundStyle(s.image)}"></div>
+                        <div class="side-content">
+                            <h4>
+                                <a href="${escapeAttribute(s.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(s.title)}</a>
+                            </h4>
+                            <p>${escapeHtml(s.source)} • ${formatRelativeTime(s.pubDate, s.validDate)}</p>
+                            <p style="font-size:0.7rem;">${formatFullDateTime(s.pubDate, s.validDate)}</p>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
         `;
     }
+
     function renderTicker(articles) {
         const tickerDiv = document.getElementById('tickerList');
         if (!tickerDiv) return;
-        const breaking = articles.filter(a=>a.isBreaking).slice(0,15);
-        if (!breaking.length) { tickerDiv.innerHTML='<span>No breaking news.</span>'; return; }
+
+        const breaking = articles.filter(a => a.isBreaking).slice(0, 15);
+
+        if (!breaking.length) {
+            tickerDiv.innerHTML = '<span>No breaking news.</span>';
+            return;
+        }
+
         const items = [...breaking, ...breaking];
-        tickerDiv.innerHTML = items.map(i=>`<a href="${i.link}" target="_blank">⚡ ${escapeHtml(i.title)}</a>`).join('');
-    }
-    function escapeHtml(str) { return str?.replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])) || ''; }
-    
-    async function loadLeague(league) {
-        let feeds, title;
-        if (league === 'nba') { feeds = nbaFeeds; title = 'NBA: Latest News & Rumors (12 most recent)'; }
-        else if (league === 'nfl') { feeds = nflFeeds; title = 'NFL: Latest News & Rumors (12 most recent)'; }
-        else { feeds = ncaaFeeds; title = 'College Athletics: D1.ticker · Coaches Wire · ESPN · NCAA (12 most recent)'; }
-        document.getElementById('news-section-title').innerText = title;
-        document.getElementById('news-grid').innerHTML = '<div class="loading">Loading...</div>';
-        const articles = await fetchAllFeeds(feeds);
-        renderNews(articles, 'news-grid');
-        renderHero(articles);
-        renderTicker(articles);
+        tickerDiv.innerHTML = items.map(i => `
+            <a href="${escapeAttribute(i.link)}" target="_blank" rel="noopener noreferrer">⚡ ${escapeHtml(i.title)}</a>
+        `).join('');
     }
 
     // ============================================
-    // 2. LIVE SCORES & SCHEDULE (unchanged, working)
+    // Load selected league with race-condition protection
+    // ============================================
+    async function loadLeague(league) {
+        const requestId = ++latestLoadRequestId;
+
+        let feeds;
+        let title;
+
+        if (league === 'nba') {
+            feeds = nbaFeeds;
+            title = 'NBA: Latest News & Rumors (12 most recent)';
+        } else if (league === 'nfl') {
+            feeds = nflFeeds;
+            title = 'NFL: Latest News & Rumors (12 most recent)';
+        } else {
+            feeds = ncaaFeeds;
+            title = 'College Athletics: D1.ticker · Coaches Wire · ESPN · NCAA (12 most recent)';
+        }
+
+        const titleEl = document.getElementById('news-section-title');
+        const gridEl = document.getElementById('news-grid');
+
+        if (titleEl) titleEl.innerText = title;
+        if (gridEl) gridEl.innerHTML = '<div class="loading">Loading...</div>';
+
+        const articles = await fetchAllFeeds(feeds);
+
+        // Ignore stale responses if the user switched tabs quickly
+        if (requestId !== latestLoadRequestId) return;
+
+        renderNews(articles, 'news-grid');
+        renderHero(articles);
+        renderTicker(articles);
+
+        // Optional debugging:
+        // console.table(articles.map(a => ({
+        //     source: a.source,
+        //     title: a.title.slice(0, 60),
+        //     rawPubDate: a.rawPubDate,
+        //     parsedISO: a.pubDate ? a.pubDate.toISOString() : null,
+        //     validDate: a.validDate,
+        //     dateReason: a.dateReason
+        // })));
+    }
+
+    // ============================================
+    // Live scores and schedule
     // ============================================
     async function fetchAPI(url) {
         try {
             const res = await fetch(url);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             return await res.json();
-        } catch(e) { return null; }
+        } catch (e) {
+            return null;
+        }
     }
+
     async function loadGames(league) {
         const container = document.getElementById('games-list');
         container.innerHTML = '<div class="loading-spinner">Loading games...</div>';
+
         const sport = league === 'nba' ? 'basketball/nba' : 'football/nfl';
         const url = `https://site.api.espn.com/apis/site/v2/sports/${sport}/scoreboard`;
         const data = await fetchAPI(url);
-        if (!data?.events?.length) { container.innerHTML = '<div class="error-message">No games today.</div>'; return; }
+
+        if (!data || !data.events || !data.events.length) {
+            container.innerHTML = '<div class="error-message">No games today.</div>';
+            return;
+        }
+
         let html = '<div class="team-stats-grid">';
+
         data.events.forEach(e => {
             const comp = e.competitions[0];
             const home = comp.competitors.find(c => c.homeAway === 'home');
             const away = comp.competitors.find(c => c.homeAway === 'away');
             const date = new Date(e.date);
-            html += `<div class="game-card" data-game-id="${e.id}" data-league="${league}"><div><strong>${away.team.displayName}</strong> @ <strong>${home.team.displayName}</strong></div><div style="font-size:0.8rem;">${date.toLocaleDateString()} • ${date.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div><div style="font-size:0.7rem; margin-top:5px;">Click for box score →</div></div>`;
+
+            html += `
+                <div class="game-card" data-game-id="${escapeAttribute(e.id)}" data-league="${escapeAttribute(league)}">
+                    <div><strong>${escapeHtml(away.team.displayName)}</strong> @ <strong>${escapeHtml(home.team.displayName)}</strong></div>
+                    <div style="font-size:0.8rem;">${date.toLocaleDateString()} • ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    <div style="font-size:0.7rem; margin-top:5px;">Click for box score →</div>
+                </div>
+            `;
         });
+
         html += '</div>';
         container.innerHTML = html;
+
         document.querySelectorAll('.game-card').forEach(card => {
             card.addEventListener('click', () => loadBoxScore(card.dataset.gameId, card.dataset.league));
         });
     }
+
     async function loadBoxScore(gameId, league) {
         const boxContainer = document.getElementById('boxscore-container');
         const boxContent = document.getElementById('boxscore-content');
+
         boxContainer.style.display = 'block';
         boxContent.innerHTML = '<div class="loading-spinner">Loading box score...</div>';
+
         const sport = league === 'nba' ? 'basketball/nba' : 'football/nfl';
         const url = `https://site.api.espn.com/apis/site/v2/sports/${sport}/summary?event=${gameId}`;
         const data = await fetchAPI(url);
-        if (!data?.boxscore?.teams) { boxContent.innerHTML = '<div class="error-message">No box score available.</div>'; return; }
+
+        if (!data || !data.boxscore || !data.boxscore.teams) {
+            boxContent.innerHTML = '<div class="error-message">No box score available.</div>';
+            return;
+        }
+
         let html = '';
+
         data.boxscore.teams.forEach(team => {
-            html += `<h4>${team.team.displayName}</h4><div class="team-stats-grid">`;
+            html += `<h4>${escapeHtml(team.team.displayName)}</h4><div class="team-stats-grid">`;
+
             team.statistics.forEach(stat => {
-                if (stat.displayValue && !stat.name.includes('fieldGoals'))
-                    html += `<div class="stat-item"><div class="stat-label">${stat.label}</div><div class="stat-value">${stat.displayValue}</div></div>`;
+                if (stat.displayValue && !stat.name.includes('fieldGoals')) {
+                    html += `
+                        <div class="stat-item">
+                            <div class="stat-label">${escapeHtml(stat.label)}</div>
+                            <div class="stat-value">${escapeHtml(stat.displayValue)}</div>
+                        </div>
+                    `;
+                }
             });
+
             html += '</div>';
         });
+
         boxContent.innerHTML = html;
     }
+
     async function loadNBASchedule() {
         const container = document.getElementById('nba-schedule-table');
         container.innerHTML = '<div class="loading-spinner">Loading schedule...</div>';
+
         const url = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard';
         const data = await fetchAPI(url);
-        if (!data?.events?.length) { container.innerHTML = '<div class="error-message">No NBA games today.</div>'; return; }
+
+        if (!data || !data.events || !data.events.length) {
+            container.innerHTML = '<div class="error-message">No NBA games today.</div>';
+            return;
+        }
+
         let html = '<div class="team-stats-grid">';
+
         data.events.forEach(e => {
             const comp = e.competitions[0];
             const home = comp.competitors.find(c => c.homeAway === 'home');
             const away = comp.competitors.find(c => c.homeAway === 'away');
             const date = new Date(e.date);
-            html += `<div class="game-card"><div><strong>${away.team.displayName}</strong> @ <strong>${home.team.displayName}</strong></div><div style="font-size:0.8rem;">${date.toLocaleDateString()} • ${date.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div></div>`;
+
+            html += `
+                <div class="game-card">
+                    <div><strong>${escapeHtml(away.team.displayName)}</strong> @ <strong>${escapeHtml(home.team.displayName)}</strong></div>
+                    <div style="font-size:0.8rem;">${date.toLocaleDateString()} • ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                </div>
+            `;
         });
+
         html += '</div>';
         container.innerHTML = html;
     }
+
     async function loadNFLSchedule() {
         const container = document.getElementById('nfl-schedule-table');
         container.innerHTML = '<div class="loading-spinner">Loading schedule...</div>';
+
         const url = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard';
         const data = await fetchAPI(url);
-        if (!data?.events?.length) { container.innerHTML = '<div class="error-message">No NFL games today.</div>'; return; }
+
+        if (!data || !data.events || !data.events.length) {
+            container.innerHTML = '<div class="error-message">No NFL games today.</div>';
+            return;
+        }
+
         let html = '<div class="team-stats-grid">';
+
         data.events.forEach(e => {
             const comp = e.competitions[0];
             const home = comp.competitors.find(c => c.homeAway === 'home');
             const away = comp.competitors.find(c => c.homeAway === 'away');
             const date = new Date(e.date);
-            html += `<div class="game-card"><div><strong>${away.team.displayName}</strong> @ <strong>${home.team.displayName}</strong></div><div style="font-size:0.8rem;">${date.toLocaleDateString()} • ${date.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div></div>`;
+
+            html += `
+                <div class="game-card">
+                    <div><strong>${escapeHtml(away.team.displayName)}</strong> @ <strong>${escapeHtml(home.team.displayName)}</strong></div>
+                    <div style="font-size:0.8rem;">${date.toLocaleDateString()} • ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                </div>
+            `;
         });
+
         html += '</div>';
         container.innerHTML = html;
     }
 
     // ============================================
-    // 3. TAB SWITCHING
+    // Tab switching
     // ============================================
     function showNewsTab() {
         document.getElementById('news-ticker-container').style.display = 'flex';
@@ -394,36 +1038,52 @@
         document.getElementById('news-grid').style.display = 'grid';
         document.getElementById('scores-pane').style.display = 'none';
     }
+
     function showScoresTab() {
         document.getElementById('news-ticker-container').style.display = 'none';
         document.getElementById('news-hero').style.display = 'none';
         document.getElementById('news-section-title').style.display = 'none';
         document.getElementById('news-grid').style.display = 'none';
         document.getElementById('scores-pane').style.display = 'block';
-        if (!window.scoresLoaded) { loadGames('nba'); window.scoresLoaded = true; }
+
+        if (!window.scoresLoaded) {
+            loadGames('nba');
+            window.scoresLoaded = true;
+        }
     }
+
     function initTabs() {
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const tab = btn.dataset.tab;
+
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                if (tab === 'nba') { showNewsTab(); await loadLeague('nba'); }
-                else if (tab === 'nfl') { showNewsTab(); await loadLeague('nfl'); }
-                else if (tab === 'ncaa') { showNewsTab(); await loadLeague('ncaa'); }
-                else if (tab === 'scores') showScoresTab();
+
+                if (tab === 'nba') {
+                    showNewsTab();
+                    await loadLeague('nba');
+                } else if (tab === 'nfl') {
+                    showNewsTab();
+                    await loadLeague('nfl');
+                } else if (tab === 'ncaa') {
+                    showNewsTab();
+                    await loadLeague('ncaa');
+                } else if (tab === 'scores') {
+                    showScoresTab();
+                }
             });
         });
     }
-    
+
     document.getElementById('league-selector')?.addEventListener('change', e => loadGames(e.target.value));
     document.getElementById('load-nba-schedule')?.addEventListener('click', loadNBASchedule);
     document.getElementById('load-nfl-schedule')?.addEventListener('click', loadNFLSchedule);
 
-    showNewsTab();
-    loadLeague('nba');
-    initTabs();
     window.scoresLoaded = false;
+    showNewsTab();
+    initTabs();
+    loadLeague('nba');
 </script>
 </body>
 </html>
