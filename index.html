@@ -566,7 +566,12 @@
     const RSS2JSON_PROXY = 'https://api.rss2json.com/v1/api.json?rss_url=';
     const MAX_ARTICLES = 12;
     const TICKER_ITEMS = 15;
+    const NEWS_CACHE_TTL_MS = 5 * 60 * 1000;
+    const PRELOAD_DELAY_MS = 350;
     let latestLoadRequestId = 0;
+    let currentNewsLeague = 'nba';
+    const leagueDataCache = new Map();
+    const leagueFetchPromises = new Map();
 
     function decodeHtmlEntities(text) {
         if (!text) return '';
@@ -982,6 +987,111 @@
         };
     }
 
+
+    function getLeagueCacheEntry(leagueKey) {
+        return leagueDataCache.get(leagueKey) || null;
+    }
+
+    function isLeagueCacheFresh(entry) {
+        if (!entry || !entry.fetchedAt) return false;
+        return (Date.now() - entry.fetchedAt) < NEWS_CACHE_TTL_MS;
+    }
+
+    function preloadArticleImages(articles = []) {
+        articles.forEach(article => {
+            const imageUrl = normalizeImageUrl(article?.image);
+            if (!imageUrl) return;
+            const img = new Image();
+            img.loading = 'eager';
+            img.decoding = 'async';
+            img.referrerPolicy = 'no-referrer';
+            img.src = imageUrl;
+        });
+    }
+
+    function storeLeagueData(leagueKey, data) {
+        leagueDataCache.set(leagueKey, {
+            fetchedAt: Date.now(),
+            data
+        });
+        preloadArticleImages(data?.selectedArticles || []);
+        return data;
+    }
+
+    async function getLeagueData(leagueKey, { forceRefresh = false } = {}) {
+        const cachedEntry = getLeagueCacheEntry(leagueKey);
+
+        if (!forceRefresh && isLeagueCacheFresh(cachedEntry)) {
+            return cachedEntry.data;
+        }
+
+        if (!forceRefresh && leagueFetchPromises.has(leagueKey)) {
+            return leagueFetchPromises.get(leagueKey);
+        }
+
+        const fetchPromise = fetchAllFeeds(leagueKey)
+            .then(data => storeLeagueData(leagueKey, data))
+            .catch(error => {
+                if (cachedEntry?.data) return cachedEntry.data;
+                throw error;
+            })
+            .finally(() => {
+                leagueFetchPromises.delete(leagueKey);
+            });
+
+        leagueFetchPromises.set(leagueKey, fetchPromise);
+        return fetchPromise;
+    }
+
+    function renderLeagueData(leagueKey, data) {
+        const league = FEED_CONFIG[leagueKey];
+        const titleEl = document.getElementById('news-section-title');
+        if (titleEl) titleEl.textContent = league.title;
+
+        const allArticles = data?.allArticles || [];
+        const selectedArticles = data?.selectedArticles || [];
+
+        if (DEBUG) {
+            console.table(allArticles.map(article => ({
+                league: leagueKey,
+                source: article.source,
+                title: article.title.slice(0, 90),
+                rawPubDate: article.rawPubDate,
+                parsedISO: article.pubDate ? article.pubDate.toISOString() : null,
+                validDate: article.validDate,
+                dateReason: article.dateReason,
+                image: article.image || '',
+                isBreaking: article.isBreaking
+            })));
+        }
+
+        renderNews(selectedArticles, 'news-grid');
+        renderHero(selectedArticles);
+        renderTicker(allArticles);
+    }
+
+    function warmLeagueCaches(activeLeagueKey) {
+        Object.keys(FEED_CONFIG)
+            .filter(leagueKey => leagueKey !== activeLeagueKey)
+            .forEach((leagueKey, index) => {
+                window.setTimeout(() => {
+                    getLeagueData(leagueKey).catch(() => {});
+                }, PRELOAD_DELAY_MS * (index + 1));
+            });
+    }
+
+    function refreshLeagueInBackground(leagueKey) {
+        if (leagueFetchPromises.has(leagueKey)) return;
+
+        getLeagueData(leagueKey, { forceRefresh: true })
+            .then(data => {
+                if (currentNewsLeague === leagueKey) {
+                    renderLeagueData(leagueKey, data);
+                }
+            })
+            .catch(() => {});
+    }
+
     function formatFullDateTime(d, validDate) {
         if (!validDate || !d) return 'Date unavailable';
         return d.toLocaleString(undefined, {
@@ -1090,34 +1200,42 @@
         `).join('');
     }
 
-    async function loadLeague(leagueKey) {
+    async function loadLeague(leagueKey, { forceRefresh = false } = {}) {
         const requestId = ++latestLoadRequestId;
+        currentNewsLeague = leagueKey;
+
         const league = FEED_CONFIG[leagueKey];
         const titleEl = document.getElementById('news-section-title');
         const gridEl = document.getElementById('news-grid');
 
         if (titleEl) titleEl.textContent = league.title;
-        if (gridEl) gridEl.innerHTML = '<div class="loading">Loading...</div>';
 
-        const { allArticles, selectedArticles } = await fetchAllFeeds(leagueKey);
-        if (requestId !== latestLoadRequestId) return;
+        const cachedEntry = getLeagueCacheEntry(leagueKey);
+        const hasCachedData = !!cachedEntry?.data;
+        const cacheIsFresh = isLeagueCacheFresh(cachedEntry);
 
-        if (DEBUG) {
-            console.table(allArticles.map(article => ({
-                source: article.source,
-                title: article.title.slice(0, 90),
-                rawPubDate: article.rawPubDate,
-                parsedISO: article.pubDate ? article.pubDate.toISOString() : null,
-                validDate: article.validDate,
-                dateReason: article.dateReason,
-                image: article.image || '',
-                isBreaking: article.isBreaking
-            })));
+        if (hasCachedData && !forceRefresh) {
+            renderLeagueData(leagueKey, cachedEntry.data);
+
+            if (!cacheIsFresh) {
+                refreshLeagueInBackground(leagueKey);
+            }
+
+            warmLeagueCaches(leagueKey);
+            return;
         }
 
-        renderNews(selectedArticles, 'news-grid');
-        renderHero(selectedArticles);
-        renderTicker(allArticles);
+        if (gridEl) gridEl.innerHTML = '<div class="loading">Loading...</div>';
+
+        try {
+            const data = await getLeagueData(leagueKey, { forceRefresh });
+            if (requestId !== latestLoadRequestId) return;
+            renderLeagueData(leagueKey, data);
+            warmLeagueCaches(leagueKey);
+        } catch {
+            if (requestId !== latestLoadRequestId) return;
+            if (gridEl) gridEl.innerHTML = '<div class="error">Unable to load articles right now.</div>';
+        }
     }
 
     async function fetchAPI(url) {
@@ -1288,6 +1406,10 @@
             btn.addEventListener('click', async () => {
                 const tab = btn.dataset.tab;
 
+                if (tab === currentNewsLeague && tab !== 'scores' && document.getElementById('scores-pane').style.display === 'none') {
+                    return;
+                }
+
                 document.querySelectorAll('.tab-btn').forEach(button => button.classList.remove('active'));
                 btn.classList.add('active');
 
@@ -1305,6 +1427,14 @@
     document.getElementById('league-selector')?.addEventListener('change', event => loadGames(event.target.value));
     document.getElementById('load-nba-schedule')?.addEventListener('click', loadNBASchedule);
     document.getElementById('load-nfl-schedule')?.addEventListener('click', loadNFLSchedule);
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'visible') return;
+        const activeLeagueEntry = getLeagueCacheEntry(currentNewsLeague);
+        if (currentNewsLeague && activeLeagueEntry && !isLeagueCacheFresh(activeLeagueEntry)) {
+            refreshLeagueInBackground(currentNewsLeague);
+        }
+    });
 
     window.scoresLoaded = false;
     showNewsTab();
