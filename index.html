@@ -148,8 +148,8 @@
         .hero-img {
             background: #1e293b;
             height: 280px;
-            background-size: cover;
-            background-position: center;
+            overflow: hidden;
+            position: relative;
         }
 
         .hero-text {
@@ -199,8 +199,8 @@
             height: 60px;
             background: #1e293b;
             border-radius: 12px;
-            background-size: cover;
-            background-position: center;
+            overflow: hidden;
+            position: relative;
             flex-shrink: 0;
         }
 
@@ -254,9 +254,36 @@
         .card-img {
             width: 100%;
             height: 180px;
-            background-size: cover;
-            background-position: center;
-            background-color: #1e293b;
+            background: #1e293b;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .feed-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            background: #1e293b;
+        }
+
+        .img-fallback {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 12px;
+            color: #93c5fd;
+            background:
+                radial-gradient(circle at top left, rgba(59,130,246,0.28), transparent 35%),
+                radial-gradient(circle at bottom right, rgba(239,68,68,0.18), transparent 40%),
+                #1e293b;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
         }
 
         .card-content {
@@ -481,29 +508,79 @@
     </div>
 
     <footer>
-        Mixed-source sports brief with newest-first ranking, soft source balancing, and image extraction from RSS thumbnails and embedded content.
+        Mixed-source sports brief with raw-feed parsing, image extraction from RSS/Atom media tags, and a lighter NCAA cap so newsletter items surface when they are actually the newest stories.
     </footer>
 </div>
 
 <script>
-    // ============================================
-    // Helpers
-    // ============================================
+    const DEBUG = new URLSearchParams(window.location.search).has('debug');
+
+    const FEED_CONFIG = {
+        nba: {
+            title: 'NBA: Mixed News Feed',
+            softSourceCap: 2,
+            breakingExtraCap: 1,
+            feeds: [
+                { name: '🔥 Shams Breaking News', url: 'https://rss.app/feeds/KSP50yB3sPn7wSyp.xml', isBreaking: true },
+                { name: 'ESPN NBA', url: 'https://www.espn.com/espn/rss/nba/news' },
+                { name: 'Bleacher Report NBA', url: 'https://bleacherreport.com/nba/feed' },
+                { name: 'Yahoo Sports NBA', url: 'https://sports.yahoo.com/nba/rss/' },
+                { name: 'RealGM NBA', url: 'http://basketball.realgm.com/wiretap/nba/rss' },
+                { name: 'CBS Sports NBA', url: 'https://www.cbssports.com/nba/rss/headlines' },
+                { name: 'Sports Illustrated NBA', url: 'https://www.si.com/rss/nba.rss' }
+            ]
+        },
+        nfl: {
+            title: 'NFL: Mixed News Feed',
+            softSourceCap: 2,
+            breakingExtraCap: 1,
+            feeds: [
+                { name: '🔥 Adam Schefter Breaking News', url: 'https://rss.app/feeds/hAcUsz9WSpqcLFsq.xml', isBreaking: true },
+                { name: 'ESPN NFL', url: 'https://www.espn.com/espn/rss/nfl/news' },
+                { name: 'Bleacher Report NFL', url: 'https://bleacherreport.com/nfl/feed' },
+                { name: 'Yahoo Sports NFL', url: 'https://sports.yahoo.com/nfl/rss/' },
+                { name: 'RealGM NFL', url: 'http://football.realgm.com/src_wiretap/rss' },
+                { name: 'CBS Sports NFL', url: 'https://www.cbssports.com/nfl/rss/headlines' },
+                { name: 'NFL.com', url: 'https://www.nfl.com/rss/partner.xml' }
+            ]
+        },
+        ncaa: {
+            title: 'College Athletics: Mixed News Feed',
+            softSourceCap: 3,
+            breakingExtraCap: 3,
+            feeds: [
+                { name: '🔥 D1.ticker', url: 'https://rss.app/feeds/vq5iDi0CxkHkaACm.xml', isBreaking: true },
+                { name: '🔥 Coaches Wire', url: 'https://rss.app/feeds/zzrJ6NlGj2EmZW8x.xml', isBreaking: true },
+                { name: 'ESPN College Basketball', url: 'https://www.espn.com/espn/rss/ncb/news' },
+                { name: 'ESPN College Football', url: 'https://www.espn.com/espn/rss/ncf/news' },
+                { name: "NCAA DI Men's Basketball", url: 'https://www.ncaa.com/news/basketball-men/d1/rss.xml' },
+                { name: 'NCAA FBS Football', url: 'https://www.ncaa.com/news/football/fbs/rss.xml' },
+                { name: "NCAA DI Women's Basketball", url: 'https://www.ncaa.com/news/basketball-women/d1/rss.xml' },
+                { name: 'NCAA Baseball', url: 'https://www.ncaa.com/news/baseball/d1/rss.xml' }
+            ]
+        }
+    };
+
+    const XML_PROXY_RAW = 'https://api.allorigins.win/raw?url=';
+    const XML_PROXY_JSON = 'https://api.allorigins.win/get?url=';
+    const RSS2JSON_PROXY = 'https://api.rss2json.com/v1/api.json?rss_url=';
+    const MAX_ARTICLES = 12;
+    const TICKER_ITEMS = 15;
+    let latestLoadRequestId = 0;
+
     function decodeHtmlEntities(text) {
         if (!text) return '';
-        let decoded = text;
         const textarea = document.createElement('textarea');
+        textarea.innerHTML = text;
+        let decoded = textarea.value;
         textarea.innerHTML = decoded;
         decoded = textarea.value;
-        textarea.innerHTML = decoded;
-        decoded = textarea.value;
-        decoded = decoded
+        return decoded
             .replace(/&#39;/g, "'")
             .replace(/&amp;/g, '&')
             .replace(/&quot;/g, '"')
             .replace(/&lt;/g, '<')
             .replace(/&gt;/g, '>');
-        return decoded;
     }
 
     function escapeHtml(str) {
@@ -522,91 +599,114 @@
             .replace(/>/g, '&gt;');
     }
 
-    function backgroundStyle(url) {
-        if (!url) return 'background-color:#1e293b;';
-        return `background-image: url("${escapeAttribute(url)}"); background-size: cover; background-position: center;`;
-    }
-
     function normalizeImageUrl(url) {
         if (!url || typeof url !== 'string') return null;
-        const cleaned = decodeHtmlEntities(url.trim());
-        if (!/^https?:\/\//i.test(cleaned)) return null;
+        let cleaned = decodeHtmlEntities(url.trim());
+        if (!cleaned) return null;
+        if (cleaned.startsWith('//')) cleaned = `https:${cleaned}`;
         if (/^data:/i.test(cleaned)) return null;
+        if (!/^https?:\/\//i.test(cleaned)) return null;
         return cleaned;
+    }
+
+    function stripHtml(html) {
+        if (!html) return '';
+        const doc = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html');
+        return (doc.body.textContent || '').replace(/\s+/g, ' ').trim();
     }
 
     function extractImageFromHtml(html) {
         if (!html || typeof html !== 'string') return null;
-        const match = html.match(/<img[^>]+src=["']([^"'<>]+)["']/i);
-        return match ? normalizeImageUrl(match[1]) : null;
-    }
 
-    // ============================================
-    // Feeds
-    // ============================================
-    const nbaFeeds = [
-        { name: "🔥 Shams Breaking News", url: "https://rss.app/feeds/KSP50yB3sPn7wSyp.xml", isBreaking: true },
-        { name: "ESPN NBA", url: "https://www.espn.com/espn/rss/nba/news" },
-        { name: "Bleacher Report NBA", url: "https://bleacherreport.com/nba/feed" },
-        { name: "Yahoo Sports NBA", url: "https://sports.yahoo.com/nba/rss/" },
-        { name: "RealGM NBA", url: "http://basketball.realgm.com/wiretap/nba/rss" },
-        { name: "CBS Sports NBA", url: "https://www.cbssports.com/nba/rss/headlines" },
-        { name: "Sports Illustrated NBA", url: "https://www.si.com/rss/nba.rss" }
-    ];
-
-    const nflFeeds = [
-        { name: "🔥 Adam Schefter Breaking News", url: "https://rss.app/feeds/hAcUsz9WSpqcLFsq.xml", isBreaking: true },
-        { name: "ESPN NFL", url: "https://www.espn.com/espn/rss/nfl/news" },
-        { name: "Bleacher Report NFL", url: "https://bleacherreport.com/nfl/feed" },
-        { name: "Yahoo Sports NFL", url: "https://sports.yahoo.com/nfl/rss/" },
-        { name: "RealGM NFL", url: "http://football.realgm.com/src_wiretap/rss" },
-        { name: "CBS Sports NFL", url: "https://www.cbssports.com/nfl/rss/headlines" },
-        { name: "NFL.com", url: "https://www.nfl.com/rss/partner.xml" }
-    ];
-
-    const ncaaFeeds = [
-        { name: "🔥 D1.ticker", url: "https://rss.app/feeds/vq5iDi0CxkHkaACm.xml", isBreaking: true },
-        { name: "🔥 Coaches Wire", url: "https://rss.app/feeds/zzrJ6NlGj2EmZW8x.xml", isBreaking: true },
-        { name: "ESPN College Basketball", url: "https://www.espn.com/espn/rss/ncb/news" },
-        { name: "ESPN College Football", url: "https://www.espn.com/espn/rss/ncf/news" },
-        { name: "NCAA DI Men's Basketball", url: "https://www.ncaa.com/news/basketball-men/d1/rss.xml" },
-        { name: "NCAA FBS Football", url: "https://www.ncaa.com/news/football/fbs/rss.xml" },
-        { name: "NCAA DI Women's Basketball", url: "https://www.ncaa.com/news/basketball-women/d1/rss.xml" },
-        { name: "NCAA Baseball", url: "https://www.ncaa.com/news/baseball/d1/rss.xml" }
-    ];
-
-    const PROXY = "https://api.rss2json.com/v1/api.json?rss_url=";
-    const MAX_ARTICLES = 12;
-    const SOFT_SOURCE_CAP = 2;
-    const TICKER_ITEMS = 15;
-    let latestLoadRequestId = 0;
-
-    // ============================================
-    // Image extraction
-    // ============================================
-    function getImageFromItem(item) {
-        const candidates = [
-            item?.enclosure?.link,
-            item?.thumbnail,
-            item?.image,
-            item?.["media:content"]?.url,
-            item?.["media:thumbnail"]?.url,
-            extractImageFromHtml(item?.description),
-            extractImageFromHtml(item?.content),
-            extractImageFromHtml(item?.content_encoded)
+        const patterns = [
+            /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
+            /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
+            /<img[^>]+src=["']([^"'<>]+)["']/i,
+            /background-image\s*:\s*url\((['"]?)(https?:[^)'"\s]+)\1\)/i
         ];
 
-        for (const candidate of candidates) {
-            const url = normalizeImageUrl(candidate);
+        for (const pattern of patterns) {
+            const match = html.match(pattern);
+            const url = normalizeImageUrl(match?.[1] || match?.[2]);
             if (url) return url;
         }
 
         return null;
     }
 
-    // ============================================
-    // Date parsing
-    // ============================================
+    function normalizeLink(url) {
+        if (!url) return '#';
+        try {
+            const parsed = new URL(url);
+            ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'mc_cid', 'mc_eid', 'ref', 'ref_src'].forEach(key => parsed.searchParams.delete(key));
+            parsed.hash = '';
+            return parsed.toString();
+        } catch {
+            return url;
+        }
+    }
+
+    function renderImageMarkup(url, alt, className, fallbackLabel) {
+        const safeAlt = escapeAttribute(alt || 'Article image');
+        const safeLabel = escapeHtml(fallbackLabel || 'Sports News');
+        const normalizedUrl = normalizeImageUrl(url);
+
+        if (!normalizedUrl) {
+            return `<div class="${className}"><div class="img-fallback">${safeLabel}</div></div>`;
+        }
+
+        return `
+            <div class="${className}">
+                <img
+                    class="feed-image"
+                    src="${escapeAttribute(normalizedUrl)}"
+                    alt="${safeAlt}"
+                    loading="lazy"
+                    referrerpolicy="no-referrer"
+                    onerror="this.closest('.${className}').innerHTML = '<div class=\'img-fallback\'>${safeLabel}</div>'"
+                />
+            </div>
+        `;
+    }
+
+    function getDirectChildren(node, tagNames) {
+        const wanted = tagNames.map(t => t.toLowerCase());
+        return Array.from(node?.children || []).filter(child => wanted.includes((child.tagName || '').toLowerCase()));
+    }
+
+    function getFirstDirectText(node, tagNames) {
+        const matches = getDirectChildren(node, tagNames);
+        for (const match of matches) {
+            const text = match.textContent?.trim();
+            if (text) return decodeHtmlEntities(text);
+        }
+        return '';
+    }
+
+    function getFirstDirectAttr(node, tagNames, attrNames) {
+        const matches = getDirectChildren(node, tagNames);
+        for (const match of matches) {
+            for (const attr of attrNames) {
+                const value = match.getAttribute?.(attr);
+                if (value) return value.trim();
+            }
+        }
+        return '';
+    }
+
+    function getFirstAnywhereAttr(node, tagNames, attrNames) {
+        for (const tagName of tagNames) {
+            const nodes = Array.from(node.getElementsByTagName(tagName) || []);
+            for (const candidate of nodes) {
+                for (const attr of attrNames) {
+                    const value = candidate.getAttribute?.(attr);
+                    if (value) return value.trim();
+                }
+            }
+        }
+        return '';
+    }
+
     function parseRssDate(dateString) {
         if (!dateString || typeof dateString !== 'string') {
             return { date: null, raw: dateString || '', valid: false, reason: 'missing' };
@@ -623,6 +723,8 @@
         }
 
         addCandidate(raw);
+        addCandidate(raw.replace(' UTC', ' GMT'));
+        addCandidate(raw.replace(/([+-]\d{2}):(\d{2})$/, '$1$2'));
 
         if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(raw)) {
             addCandidate(raw.replace(' ', 'T') + 'Z');
@@ -631,8 +733,6 @@
         if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(raw)) {
             addCandidate(raw + 'Z');
         }
-
-        addCandidate(raw.replace(/([+-]\d{2}):(\d{2})$/, '$1$2'));
 
         let parsed = null;
 
@@ -649,8 +749,7 @@
         }
 
         const now = Date.now();
-        const futureToleranceMs = 60 * 60 * 1000;
-
+        const futureToleranceMs = 12 * 60 * 60 * 1000;
         if (parsed.getTime() > now + futureToleranceMs) {
             return { date: null, raw, valid: false, reason: 'future_outlier' };
         }
@@ -658,23 +757,113 @@
         return { date: parsed, raw, valid: true, reason: 'ok' };
     }
 
-    // ============================================
-    // Feed fetch / normalize
-    // ============================================
-    async function fetchRssFeed(feedUrl, sourceName, isBreaking = false) {
-        try {
-            const res = await fetch(`${PROXY}${encodeURIComponent(feedUrl)}`);
-            const data = await res.json();
+    async function fetchRawXml(feedUrl) {
+        const cacheBust = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-            if (data.status !== "ok" || !data.items) return [];
+        const rawUrl = `${XML_PROXY_RAW}${encodeURIComponent(feedUrl)}&_=${cacheBust}`;
+        try {
+            const rawRes = await fetch(rawUrl, { cache: 'no-store' });
+            if (rawRes.ok) {
+                const xmlText = await rawRes.text();
+                if (xmlText && /<(rss|feed|rdf:RDF)\b/i.test(xmlText)) return xmlText;
+            }
+        } catch {}
+
+        const jsonUrl = `${XML_PROXY_JSON}${encodeURIComponent(feedUrl)}&_=${cacheBust}`;
+        const jsonRes = await fetch(jsonUrl, { cache: 'no-store' });
+        if (!jsonRes.ok) throw new Error(`Proxy failed: ${jsonRes.status}`);
+        const wrapped = await jsonRes.json();
+        if (wrapped?.contents && /<(rss|feed|rdf:RDF)\b/i.test(wrapped.contents)) return wrapped.contents;
+        throw new Error('No XML returned from proxy');
+    }
+
+    function parseXmlFeed(xmlText, sourceName, isBreaking = false) {
+        const xml = new DOMParser().parseFromString(xmlText, 'application/xml');
+        if (xml.querySelector('parsererror')) throw new Error('XML parse error');
+
+        const entries = Array.from(xml.getElementsByTagName('item'));
+        const atomEntries = entries.length ? entries : Array.from(xml.getElementsByTagName('entry'));
+
+        return atomEntries.map(item => {
+            const title = getFirstDirectText(item, ['title']) || 'No title';
+            const linkFromText = getFirstDirectText(item, ['link']);
+            const linkFromAttr = getFirstDirectAttr(item, ['link'], ['href', 'url']);
+            const guid = getFirstDirectText(item, ['guid', 'id']);
+            const link = normalizeLink(linkFromAttr || linkFromText || guid || '#');
+
+            const description =
+                getFirstDirectText(item, ['description', 'summary', 'content', 'content:encoded']) ||
+                '';
+
+            const rawDate =
+                getFirstDirectText(item, ['pubdate', 'published', 'updated', 'dc:date', 'issued']) ||
+                '';
+
+            const parsed = parseRssDate(rawDate);
+
+            const image = (() => {
+                const candidates = [
+                    getFirstAnywhereAttr(item, ['media:content', 'content', 'enclosure', 'media:thumbnail', 'itunes:image'], ['url', 'href']),
+                    extractImageFromHtml(description)
+                ];
+
+                for (const candidate of candidates) {
+                    const url = normalizeImageUrl(candidate);
+                    if (url) return url;
+                }
+                return null;
+            })();
+
+            return {
+                title: decodeHtmlEntities(title),
+                link,
+                pubDate: parsed.date,
+                rawPubDate: parsed.raw,
+                validDate: parsed.valid,
+                dateReason: parsed.reason,
+                sortTimeMs: parsed.valid && parsed.date ? parsed.date.getTime() : Number.NEGATIVE_INFINITY,
+                source: sourceName,
+                isBreaking,
+                image,
+                descriptionText: stripHtml(description)
+            };
+        });
+    }
+
+    function getImageFromJsonItem(item) {
+        const candidates = [
+            item?.enclosure?.link,
+            item?.enclosure?.url,
+            item?.thumbnail,
+            item?.image,
+            item?.['media:content']?.url,
+            item?.['media:thumbnail']?.url,
+            extractImageFromHtml(item?.description),
+            extractImageFromHtml(item?.content),
+            extractImageFromHtml(item?.content_encoded)
+        ];
+
+        for (const candidate of candidates) {
+            const url = normalizeImageUrl(candidate);
+            if (url) return url;
+        }
+
+        return null;
+    }
+
+    async function fetchViaRss2Json(feedUrl, sourceName, isBreaking = false) {
+        try {
+            const res = await fetch(`${RSS2JSON_PROXY}${encodeURIComponent(feedUrl)}`, { cache: 'no-store' });
+            const data = await res.json();
+            if (data.status !== 'ok' || !Array.isArray(data.items)) return [];
 
             return data.items.map(item => {
                 const rawDate = item.pubDate || item.isoDate || item.published || '';
                 const parsed = parseRssDate(rawDate);
 
                 return {
-                    title: decodeHtmlEntities(item.title || "No title"),
-                    link: item.link || "#",
+                    title: decodeHtmlEntities(item.title || 'No title'),
+                    link: normalizeLink(item.link || '#'),
                     pubDate: parsed.date,
                     rawPubDate: parsed.raw,
                     validDate: parsed.valid,
@@ -682,12 +871,25 @@
                     sortTimeMs: parsed.valid && parsed.date ? parsed.date.getTime() : Number.NEGATIVE_INFINITY,
                     source: sourceName,
                     isBreaking,
-                    image: getImageFromItem(item)
+                    image: getImageFromJsonItem(item),
+                    descriptionText: stripHtml(item.description || item.content || item.content_encoded || '')
                 };
             });
-        } catch (err) {
+        } catch {
             return [];
         }
+    }
+
+    async function fetchRssFeed(feedUrl, sourceName, isBreaking = false) {
+        try {
+            const xmlText = await fetchRawXml(feedUrl);
+            const parsedItems = parseXmlFeed(xmlText, sourceName, isBreaking);
+            if (parsedItems.length) return parsedItems;
+        } catch (err) {
+            if (DEBUG) console.warn('Raw XML parser failed, falling back to rss2json:', sourceName, err);
+        }
+
+        return fetchViaRss2Json(feedUrl, sourceName, isBreaking);
     }
 
     function dedupeArticles(items) {
@@ -696,9 +898,8 @@
 
         for (const item of items) {
             const normalizedTitle = (item.title || '').toLowerCase().replace(/\s+/g, ' ').trim();
-            const key = item.link && item.link !== '#'
-                ? `link:${item.link}`
-                : `title:${normalizedTitle}`;
+            const normalizedLink = item.link && item.link !== '#' ? normalizeLink(item.link) : '';
+            const key = normalizedLink ? `link:${normalizedLink}` : `title:${normalizedTitle}`;
 
             if (seen.has(key)) continue;
             seen.add(key);
@@ -708,36 +909,32 @@
         return output;
     }
 
-    function selectBalancedArticles(sortedArticles, maxArticles, perSourceCap) {
+    function selectBalancedArticles(sortedArticles, maxArticles, perSourceCap, breakingExtraCap = 0) {
         const selected = [];
         const selectedKeys = new Set();
         const sourceCounts = {};
 
-        // Pass 1: soft source cap for diversity
         for (const article of sortedArticles) {
             if (selected.length >= maxArticles) break;
 
             const key = article.link || article.title || JSON.stringify(article);
             const source = article.source || 'Unknown';
+            const effectiveCap = article.isBreaking ? perSourceCap + breakingExtraCap : perSourceCap;
 
             if (selectedKeys.has(key)) continue;
-
             if (!sourceCounts[source]) sourceCounts[source] = 0;
-            if (sourceCounts[source] >= perSourceCap) continue;
+            if (sourceCounts[source] >= effectiveCap) continue;
 
             selected.push(article);
             selectedKeys.add(key);
             sourceCounts[source]++;
         }
 
-        // Pass 2: fill remaining slots by strict recency
         if (selected.length < maxArticles) {
             for (const article of sortedArticles) {
                 if (selected.length >= maxArticles) break;
-
                 const key = article.link || article.title || JSON.stringify(article);
                 if (selectedKeys.has(key)) continue;
-
                 selected.push(article);
                 selectedKeys.add(key);
             }
@@ -746,18 +943,18 @@
         return selected;
     }
 
-    async function fetchAllFeeds(feedsArray) {
+    async function fetchAllFeeds(leagueKey) {
+        const league = FEED_CONFIG[leagueKey];
         const results = await Promise.allSettled(
-            feedsArray.map(f => fetchRssFeed(f.url, f.name, f.isBreaking))
+            league.feeds.map(feed => fetchRssFeed(feed.url, feed.name, feed.isBreaking))
         );
 
         let all = [];
-
         for (const result of results) {
-            if (result.status === "fulfilled") {
-                all = all.concat(result.value);
-            }
+            if (result.status === 'fulfilled') all = all.concat(result.value);
         }
+
+        all = dedupeArticles(all);
 
         all.sort((a, b) => {
             if (a.validDate && !b.validDate) return -1;
@@ -766,25 +963,27 @@
             const timeDiff = b.sortTimeMs - a.sortTimeMs;
             if (timeDiff !== 0) return timeDiff;
 
+            if (a.isBreaking && !b.isBreaking) return -1;
+            if (!a.isBreaking && b.isBreaking) return 1;
+
             const tieA = a.link || a.title || '';
             const tieB = b.link || b.title || '';
             return tieA.localeCompare(tieB);
         });
 
-        all = dedupeArticles(all);
-
         return {
             allArticles: all,
-            selectedArticles: selectBalancedArticles(all, MAX_ARTICLES, SOFT_SOURCE_CAP)
+            selectedArticles: selectBalancedArticles(
+                all,
+                MAX_ARTICLES,
+                league.softSourceCap,
+                league.breakingExtraCap
+            )
         };
     }
 
-    // ============================================
-    // Date display
-    // ============================================
     function formatFullDateTime(d, validDate) {
-        if (!validDate || !d) return "Date unavailable";
-
+        if (!validDate || !d) return 'Date unavailable';
         return d.toLocaleString(undefined, {
             month: 'short',
             day: 'numeric',
@@ -796,23 +995,14 @@
     }
 
     function formatRelativeTime(d, validDate) {
-        if (!validDate || !d) return "unknown";
-
+        if (!validDate || !d) return 'unknown';
         const diffMinutes = Math.floor((Date.now() - d.getTime()) / 60000);
-
-        if (diffMinutes < 1) return "just now";
+        if (diffMinutes < 1) return 'just now';
         if (diffMinutes < 60) return `${diffMinutes} min ago`;
         if (diffMinutes < 1440) return `${Math.floor(diffMinutes / 60)} hours ago`;
-
-        return d.toLocaleDateString(undefined, {
-            month: 'short',
-            day: 'numeric'
-        });
+        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     }
 
-    // ============================================
-    // Rendering
-    // ============================================
     function renderNews(articles, containerId) {
         const container = document.getElementById(containerId);
         if (!container) return;
@@ -822,19 +1012,19 @@
             return;
         }
 
-        container.innerHTML = articles.map(a => `
+        container.innerHTML = articles.map(article => `
             <div class="news-card">
-                ${a.image ? `<div class="card-img" style="${backgroundStyle(a.image)}"></div>` : ''}
+                ${renderImageMarkup(article.image, article.title, 'card-img', article.source)}
                 <div class="card-content">
                     <div class="news-title">
-                        <a href="${escapeAttribute(a.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(a.title)}</a>
+                        <a href="${escapeAttribute(article.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(article.title)}</a>
                     </div>
                     <div class="news-meta">
-                        <span class="source ${a.isBreaking ? 'source-breaking' : ''}">${escapeHtml(a.source)}</span>
-                        <span class="datetime">${formatRelativeTime(a.pubDate, a.validDate)}</span>
+                        <span class="source ${article.isBreaking ? 'source-breaking' : ''}">${escapeHtml(article.source)}</span>
+                        <span class="datetime">${formatRelativeTime(article.pubDate, article.validDate)}</span>
                     </div>
                     <div class="datetime" style="font-size:0.7rem;margin-top:8px;color:#6b7280;">
-                        ${formatFullDateTime(a.pubDate, a.validDate)}
+                        ${formatFullDateTime(article.pubDate, article.validDate)}
                     </div>
                 </div>
             </div>
@@ -856,7 +1046,7 @@
 
         heroDiv.innerHTML = `
             <div class="hero-main">
-                <div class="hero-img" style="${backgroundStyle(main.image)}"></div>
+                ${renderImageMarkup(main.image, main.title, 'hero-img', main.source)}
                 <div class="hero-text">
                     <div class="hero-category">${escapeHtml(main.source)}</div>
                     <h2>
@@ -868,15 +1058,15 @@
                 </div>
             </div>
             <div class="hero-side">
-                ${sides.map(s => `
+                ${sides.map(side => `
                     <div class="side-card">
-                        <div class="side-img" style="${backgroundStyle(s.image)}"></div>
+                        ${renderImageMarkup(side.image, side.title, 'side-img', side.source)}
                         <div class="side-content">
                             <h4>
-                                <a href="${escapeAttribute(s.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(s.title)}</a>
+                                <a href="${escapeAttribute(side.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(side.title)}</a>
                             </h4>
-                            <p>${escapeHtml(s.source)} • ${formatRelativeTime(s.pubDate, s.validDate)}</p>
-                            <p style="font-size:0.7rem;">${formatFullDateTime(s.pubDate, s.validDate)}</p>
+                            <p>${escapeHtml(side.source)} • ${formatRelativeTime(side.pubDate, side.validDate)}</p>
+                            <p style="font-size:0.7rem;">${formatFullDateTime(side.pubDate, side.validDate)}</p>
                         </div>
                     </div>
                 `).join('')}
@@ -888,75 +1078,54 @@
         const tickerDiv = document.getElementById('tickerList');
         if (!tickerDiv) return;
 
-        const breaking = articles.filter(a => a.isBreaking).slice(0, TICKER_ITEMS);
-
+        const breaking = articles.filter(article => article.isBreaking).slice(0, TICKER_ITEMS);
         if (!breaking.length) {
             tickerDiv.innerHTML = '<span>No breaking news.</span>';
             return;
         }
 
         const items = [...breaking, ...breaking];
-
-        tickerDiv.innerHTML = items.map(i => `
-            <a href="${escapeAttribute(i.link)}" target="_blank" rel="noopener noreferrer">⚡ ${escapeHtml(i.title)}</a>
+        tickerDiv.innerHTML = items.map(item => `
+            <a href="${escapeAttribute(item.link)}" target="_blank" rel="noopener noreferrer">⚡ ${escapeHtml(item.title)}</a>
         `).join('');
     }
 
-    // ============================================
-    // League loading
-    // ============================================
-    async function loadLeague(league) {
+    async function loadLeague(leagueKey) {
         const requestId = ++latestLoadRequestId;
-
-        let feeds;
-        let title;
-
-        if (league === 'nba') {
-            feeds = nbaFeeds;
-            title = 'NBA: Mixed News Feed (12 most recent, source-balanced)';
-        } else if (league === 'nfl') {
-            feeds = nflFeeds;
-            title = 'NFL: Mixed News Feed (12 most recent, source-balanced)';
-        } else {
-            feeds = ncaaFeeds;
-            title = 'College Athletics: Mixed News Feed (12 most recent, source-balanced)';
-        }
-
+        const league = FEED_CONFIG[leagueKey];
         const titleEl = document.getElementById('news-section-title');
         const gridEl = document.getElementById('news-grid');
 
-        if (titleEl) titleEl.innerText = title;
+        if (titleEl) titleEl.textContent = league.title;
         if (gridEl) gridEl.innerHTML = '<div class="loading">Loading...</div>';
 
-        const { allArticles, selectedArticles } = await fetchAllFeeds(feeds);
-
+        const { allArticles, selectedArticles } = await fetchAllFeeds(leagueKey);
         if (requestId !== latestLoadRequestId) return;
+
+        if (DEBUG) {
+            console.table(allArticles.map(article => ({
+                source: article.source,
+                title: article.title.slice(0, 90),
+                rawPubDate: article.rawPubDate,
+                parsedISO: article.pubDate ? article.pubDate.toISOString() : null,
+                validDate: article.validDate,
+                dateReason: article.dateReason,
+                image: article.image || '',
+                isBreaking: article.isBreaking
+            })));
+        }
 
         renderNews(selectedArticles, 'news-grid');
         renderHero(selectedArticles);
         renderTicker(allArticles);
-
-        // Optional debugging:
-        // console.table(allArticles.map(a => ({
-        //     source: a.source,
-        //     title: a.title.slice(0, 70),
-        //     rawPubDate: a.rawPubDate,
-        //     parsedISO: a.pubDate ? a.pubDate.toISOString() : null,
-        //     validDate: a.validDate,
-        //     dateReason: a.dateReason,
-        //     image: a.image || ''
-        // })));
     }
 
-    // ============================================
-    // Live scores & schedules
-    // ============================================
     async function fetchAPI(url) {
         try {
             const res = await fetch(url);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             return await res.json();
-        } catch (e) {
+        } catch {
             return null;
         }
     }
@@ -976,14 +1145,14 @@
 
         let html = '<div class="team-stats-grid">';
 
-        data.events.forEach(e => {
-            const comp = e.competitions[0];
+        data.events.forEach(event => {
+            const comp = event.competitions[0];
             const home = comp.competitors.find(c => c.homeAway === 'home');
             const away = comp.competitors.find(c => c.homeAway === 'away');
-            const date = new Date(e.date);
+            const date = new Date(event.date);
 
             html += `
-                <div class="game-card" data-game-id="${escapeAttribute(e.id)}" data-league="${escapeAttribute(league)}">
+                <div class="game-card" data-game-id="${escapeAttribute(event.id)}" data-league="${escapeAttribute(league)}">
                     <div><strong>${escapeHtml(away.team.displayName)}</strong> @ <strong>${escapeHtml(home.team.displayName)}</strong></div>
                     <div style="font-size:0.8rem;">${date.toLocaleDateString()} • ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                     <div style="font-size:0.7rem; margin-top:5px;">Click for box score →</div>
@@ -1019,7 +1188,6 @@
 
         data.boxscore.teams.forEach(team => {
             html += `<h4>${escapeHtml(team.team.displayName)}</h4><div class="team-stats-grid">`;
-
             team.statistics.forEach(stat => {
                 if (stat.displayValue && !stat.name.includes('fieldGoals')) {
                     html += `
@@ -1030,7 +1198,6 @@
                     `;
                 }
             });
-
             html += '</div>';
         });
 
@@ -1050,13 +1217,11 @@
         }
 
         let html = '<div class="team-stats-grid">';
-
-        data.events.forEach(e => {
-            const comp = e.competitions[0];
+        data.events.forEach(event => {
+            const comp = event.competitions[0];
             const home = comp.competitors.find(c => c.homeAway === 'home');
             const away = comp.competitors.find(c => c.homeAway === 'away');
-            const date = new Date(e.date);
-
+            const date = new Date(event.date);
             html += `
                 <div class="game-card">
                     <div><strong>${escapeHtml(away.team.displayName)}</strong> @ <strong>${escapeHtml(home.team.displayName)}</strong></div>
@@ -1064,7 +1229,6 @@
                 </div>
             `;
         });
-
         html += '</div>';
         container.innerHTML = html;
     }
@@ -1082,13 +1246,11 @@
         }
 
         let html = '<div class="team-stats-grid">';
-
-        data.events.forEach(e => {
-            const comp = e.competitions[0];
+        data.events.forEach(event => {
+            const comp = event.competitions[0];
             const home = comp.competitors.find(c => c.homeAway === 'home');
             const away = comp.competitors.find(c => c.homeAway === 'away');
-            const date = new Date(e.date);
-
+            const date = new Date(event.date);
             html += `
                 <div class="game-card">
                     <div><strong>${escapeHtml(away.team.displayName)}</strong> @ <strong>${escapeHtml(home.team.displayName)}</strong></div>
@@ -1096,14 +1258,10 @@
                 </div>
             `;
         });
-
         html += '</div>';
         container.innerHTML = html;
     }
 
-    // ============================================
-    // Tabs
-    // ============================================
     function showNewsTab() {
         document.getElementById('news-ticker-container').style.display = 'flex';
         document.getElementById('news-hero').style.display = 'grid';
@@ -1130,26 +1288,21 @@
             btn.addEventListener('click', async () => {
                 const tab = btn.dataset.tab;
 
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-btn').forEach(button => button.classList.remove('active'));
                 btn.classList.add('active');
 
-                if (tab === 'nba') {
-                    showNewsTab();
-                    await loadLeague('nba');
-                } else if (tab === 'nfl') {
-                    showNewsTab();
-                    await loadLeague('nfl');
-                } else if (tab === 'ncaa') {
-                    showNewsTab();
-                    await loadLeague('ncaa');
-                } else if (tab === 'scores') {
+                if (tab === 'scores') {
                     showScoresTab();
+                    return;
                 }
+
+                showNewsTab();
+                await loadLeague(tab);
             });
         });
     }
 
-    document.getElementById('league-selector')?.addEventListener('change', e => loadGames(e.target.value));
+    document.getElementById('league-selector')?.addEventListener('change', event => loadGames(event.target.value));
     document.getElementById('load-nba-schedule')?.addEventListener('click', loadNBASchedule);
     document.getElementById('load-nfl-schedule')?.addEventListener('click', loadNFLSchedule);
 
