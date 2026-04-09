@@ -102,7 +102,8 @@
         .ticker-scroll {
             display: inline-block;
             white-space: nowrap;
-            animation: scrollTicker 100s linear infinite;
+            animation: scrollTicker var(--ticker-duration, 120s) linear infinite;
+            will-change: transform;
         }
 
         .ticker-scroll:hover {
@@ -570,6 +571,9 @@
     const TICKER_ITEMS = 15;
     const NEWS_CACHE_TTL_MS = 5 * 60 * 1000;
     const PRELOAD_DELAY_MS = 350;
+    const TICKER_PX_PER_SECOND = 12;
+    const TICKER_MIN_DURATION_SEC = 90;
+
     let latestLoadRequestId = 0;
     let currentNewsLeague = 'nba';
     const leagueDataCache = new Map();
@@ -989,7 +993,6 @@
         };
     }
 
-
     function getLeagueCacheEntry(leagueKey) {
         return leagueDataCache.get(leagueKey) || null;
     }
@@ -1043,6 +1046,18 @@
 
         leagueFetchPromises.set(leagueKey, fetchPromise);
         return fetchPromise;
+    }
+
+    function syncTickerSpeed() {
+        const tickerDiv = document.getElementById('tickerList');
+        if (!tickerDiv) return;
+
+        window.requestAnimationFrame(() => {
+            const totalWidth = tickerDiv.scrollWidth || 0;
+            const distance = totalWidth / 2;
+            const duration = Math.max(distance / TICKER_PX_PER_SECOND, TICKER_MIN_DURATION_SEC);
+            tickerDiv.style.setProperty('--ticker-duration', `${duration.toFixed(2)}s`);
+        });
     }
 
     function renderLeagueData(leagueKey, data) {
@@ -1193,6 +1208,7 @@
         const breaking = articles.filter(article => article.isBreaking).slice(0, TICKER_ITEMS);
         if (!breaking.length) {
             tickerDiv.innerHTML = '<span>No breaking news.</span>';
+            tickerDiv.style.removeProperty('--ticker-duration');
             return;
         }
 
@@ -1200,6 +1216,8 @@
         tickerDiv.innerHTML = items.map(item => `
             <a href="${escapeAttribute(item.link)}" target="_blank" rel="noopener noreferrer">⚡ ${escapeHtml(item.title)}</a>
         `).join('');
+
+        syncTickerSpeed();
     }
 
     async function loadLeague(leagueKey, { forceRefresh = false } = {}) {
@@ -1436,7 +1454,10 @@
         if (currentNewsLeague && activeLeagueEntry && !isLeagueCacheFresh(activeLeagueEntry)) {
             refreshLeagueInBackground(currentNewsLeague);
         }
+        syncTickerSpeed();
     });
+
+    window.addEventListener('resize', syncTickerSpeed);
 
     window.scoresLoaded = false;
     showNewsTab();
